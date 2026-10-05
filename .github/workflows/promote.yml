@@ -1,0 +1,49 @@
+name: Promote branches
+
+on:
+  pull_request:
+    types: [closed]
+    branches: ['feature/**', develop]
+
+permissions:
+  contents: read
+
+jobs:
+  promote:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - name: Create the next promotion pull request
+        env:
+          GH_TOKEN: ${{ secrets.PR_AUTOMATION_TOKEN }}
+          SOURCE_BRANCH: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Configure the PR_AUTOMATION_TOKEN repository secret."
+            exit 1
+          fi
+
+          if [[ "$SOURCE_BRANCH" == feature/* ]]; then
+            TARGET_BRANCH=develop
+          elif [[ "$SOURCE_BRANCH" == develop ]]; then
+            TARGET_BRANCH=main
+          else
+            echo "No promotion configured for $SOURCE_BRANCH."
+            exit 0
+          fi
+
+          PR_URL="$(gh pr list --state open --base "$TARGET_BRANCH" --head "$SOURCE_BRANCH" --json url --jq '.[0].url')"
+          if [ -z "$PR_URL" ]; then
+            PR_URL="$(gh pr create \
+              --base "$TARGET_BRANCH" \
+              --head "$SOURCE_BRANCH" \
+              --title "Promote $SOURCE_BRANCH to $TARGET_BRANCH" \
+              --body "Automated promotion after merge into $SOURCE_BRANCH. CI must pass before merge.")"
+          fi
+
+          gh pr merge "$PR_URL" --auto --squash
