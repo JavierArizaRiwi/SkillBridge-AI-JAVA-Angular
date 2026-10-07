@@ -5,6 +5,7 @@ import com.riwi.skillbridge.domain.exception.DomainNotFoundException;
 import com.riwi.skillbridge.domain.exception.InvalidCredentialsException;
 import org.springframework.http.*;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import com.riwi.skillbridge.domain.exception.ForbiddenOperationException;
 import org.springframework.web.bind.annotation.*;
 
 @RestControllerAdvice
@@ -37,6 +38,20 @@ public class GlobalExceptionHandler {
                 .findFirst().orElse("Solicitud inválida");
         ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, detail);
         p.setTitle("Validation error");
+        return p;
+    }
+
+    @ExceptionHandler(ForbiddenOperationException.class)
+    ProblemDetail forbidden(ForbiddenOperationException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, ex.getMessage());
+        p.setTitle("Forbidden");
+        return p;
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    ProblemDetail badRequest(IllegalArgumentException ex) {
+        ProblemDetail p = ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, ex.getMessage());
+        p.setTitle("Invalid request");
         return p;
     }
 }

@@ -7,5 +7,12 @@ import java.util.UUID;
 
 public interface OfferingRepositoryPort {
     List<Offering> findAllActive();
+
+    List<Offering> findAll();
+
+    List<Offering> findByProviderId(UUID providerId);
+
     Optional<Offering> findById(UUID id);
+
+    Offering save(Offering offering);
 }

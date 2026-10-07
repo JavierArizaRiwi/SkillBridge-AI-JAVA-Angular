@@ -70,7 +70,9 @@ export class BookingComponent implements OnInit {
     this.http.post<{id: string}>(`${apiBase()}/bookings`, { offeringId: this.offeringId, scheduledAt })
       .subscribe({
         next: booking => {
-          this.success = `Reserva creada: ${booking.id}`;
+          this.success = `Reserva creada exitosamente`;
+          this.offeringId = '';
+          this.scheduledLocal = '';
           this.loading = false;
         },
         error: e => {
