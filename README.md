@@ -1,1388 +1,429 @@
-# SkillBridge AI
+<div align="center">
 
-> Proyecto integrador profesional para practicar **Java 21 + Spring Boot + Angular + Arquitectura Hexagonal + PostgreSQL + Redis + RabbitMQ + Nginx + IA + observabilidad + Docker + CI/CD + despliegue cloud**.
+#  SkillBridge AI
 
-SkillBridge AI es una plataforma de mentorías y servicios profesionales. Los proveedores pueden publicar servicios y los usuarios pueden descubrirlos, autenticarse, reservar una sesión y pedir a un asistente de IA recomendaciones basadas únicamente en el catálogo existente.
+**Plataforma de mentorías y servicios profesionales con recomendaciones de IA multimodal, arquitectura hexagonal y mensajería orientada a eventos.**
 
-El objetivo principal no es el dominio de negocio: el dominio fue escogido para que cada tecnología tenga un **caso de uso real** y para que el proyecto pueda crecer hacia una solución distribuida más compleja.
+![Java](https://img.shields.io/badge/Java-21-ED8B00?logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.5.6-6DB33F?logo=springboot&logoColor=white)
+![Angular](https://img.shields.io/badge/Angular-20-DD0031?logo=angular&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-17-4169E1?logo=postgresql&logoColor=white)
+![Redis](https://img.shields.io/badge/Redis-8-DC382D?logo=redis&logoColor=white)
+![RabbitMQ](https://img.shields.io/badge/RabbitMQ-4-FF6600?logo=rabbitmq&logoColor=white)
+![Kafka](https://img.shields.io/badge/Apache%20Kafka-7.8-231F20?logo=apachekafka&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker%20Compose-ready-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg)
 
----
+</div>
 
-## 1. Qué van a aprender
-
-Este repositorio sirve como punto de partida para trabajar:
-
-- Arquitectura Hexagonal / Ports & Adapters.
-- DDD táctico básico y separación de responsabilidades.
-- Principios SOLID.
-- APIs REST con Spring Boot.
-- Spring Security + JWT + RBAC.
-- Persistencia con Spring Data JPA y PostgreSQL.
-- Migraciones con Flyway.
-- Cache-Aside con Redis.
-- Eventos asíncronos con RabbitMQ.
-- Eventos de negocio persistentes (Auditoría/Analytics) con Apache Kafka (ver [Documentación Kafka](docs/kafka.md)).
-- Retry + Dead Letter Queue.
-- Integración de IA desde Java sin exponer API keys en Angular.
-- Angular standalone.
-- Nginx como servidor de estáticos y reverse proxy.
-- Dockerfiles multi-stage.
-- Docker Compose para levantar todo el entorno.
-- Health checks.
-- Spring Boot Actuator + Micrometer.
-- Prometheus + Grafana.
-- JUnit + Mockito + JaCoCo.
-- CI con GitHub Actions.
-- Despliegue en plataformas gratuitas para laboratorio.
+![Inicio](images/Login.png)
+![Login_Registrarse](images/Login_Registrarse.png)
 
 ---
 
-## 2. Caso de uso
+## Tabla de contenidos
 
-### SkillBridge AI
-
-Una persona puede registrarse y buscar servicios como:
-
-- mentoría Java Backend;
-- mentoría Angular;
-- arquitectura de software;
-- DevOps;
-- cloud;
-- preparación de entrevistas;
-- diseño UX;
-- entrenamiento personalizado;
-- consultoría especializada.
-
-El flujo inicial implementado es:
-
-```text
-Usuario
-  |
-  v
-Angular
-  |
-  v
-Nginx
-  |
-  v
-Spring Boot
-  |
-  +----------> PostgreSQL
-  |
-  +----------> Redis
-  |
-  +----------> RabbitMQ
-  |
-  +----------> Gemini API
-```
-
-### Flujo: consultar catálogo
-
-```text
-GET /api/offerings
-       |
-       v
-OfferingService
-       |
-       v
-     Redis
-    /     \
-  HIT     MISS
-   |        |
-   |        v
-   |    PostgreSQL
-   |        |
-   |        v
-   |    guardar Redis
-   |        |
-   +--------+
-       |
-       v
-    Response
-```
-
-Este flujo permite explicar **Cache Aside**, TTL, cache hit, cache miss e invalidación.
-
-### Flujo: crear reserva
-
-```text
-POST /api/bookings
-        |
-        v
-CreateBookingUseCase
-        |
-        +------ validar reglas de negocio
-        |
-        +------ guardar Booking en PostgreSQL
-        |
-        +------ publicar BookingCreated
-                         |
-                         v
-                      RabbitMQ
-                         |
-                         v
-                booking.created.queue
-                         |
-                         v
-              Notification Consumer
-```
-
-El consumidor actual registra la notificación en logs. Las células deben extenderlo con email, auditoría, WhatsApp, otro microservicio o persistencia de notificaciones.
-
-### Flujo: IA
-
-```text
-Angular
-   |
-POST /api/ai/recommendations
-   |
-   v
-GenerateRecommendationUseCase
-   |
-   v
-AiRecommendationPort
-   |
-   v
-GeminiAiAdapter
-   |
-   v
-Gemini API
-```
-
-**Angular jamás recibe la API key de Gemini.**
-
-Además, el prompt solo envía el objetivo escrito por el usuario y el catálogo público. No se envían email, contraseña, JWT ni información privada del usuario.
+1. [Descripción general](#-descripción-general)
+2. [Características principales](#-características-principales)
+3. [Arquitectura](#-arquitectura)
+4. [Stack tecnológico](#-stack-tecnológico)
+5. [Estructura del repositorio](#-estructura-del-repositorio)
+6. [Inicio rápido](#-inicio-rápido)
+7. [Servicios y puertos](#-servicios-y-puertos)
+8. [Usuarios de prueba](#-usuarios-de-prueba)
+9. [Configuración](#-configuración)
+10. [API REST](#-api-rest)
+11. [Flujos clave](#-flujos-clave)
+12. [Mensajería: RabbitMQ y Kafka](#-mensajería-rabbitmq-y-kafka)
+13. [Servicio de auditoría](#-servicio-de-auditoría)
+14. [Inteligencia artificial](#-inteligencia-artificial)
+15. [Seguridad](#-seguridad)
+16. [Observabilidad](#-observabilidad)
+17. [Pruebas](#-pruebas)
+18. [CI/CD](#-cicd)
+19. [Despliegue](#-despliegue)
+20. [Desarrollo local sin Docker](#-desarrollo-local-sin-docker)
+21. [Solución de problemas](#-solución-de-problemas)
+22. [Limitaciones conocidas y roadmap](#-limitaciones-conocidas-y-roadmap)
+23. [Documentación adicional](#-documentación-adicional)
+24. [Licencia](#-licencia)
 
 ---
 
-# 3. Arquitectura general
+##  Descripción general
 
-```text
-                                  INTERNET
-                                      |
-                                      v
-                            +-------------------+
-                            | NGINX / Vercel CDN|
-                            +---------+---------+
-                                      |
-                     +----------------+----------------+
-                     |                                 |
-                     v                                 v
-                  Angular                           /api/**
-                                                       |
-                                                       v
-                                             +------------------+
-                                             |   Spring Boot    |
-                                             |------------------|
-                                             | Hexagonal        |
-                                             | Security + JWT   |
-                                             | Validation       |
-                                             | RFC 7807         |
-                                             +--------+---------+
-                                                      |
-                   +----------------------------------+-------------------------------+
-                   |                  |                    |                          |
-                   v                  v                    v                          v
-              PostgreSQL           Redis               RabbitMQ                   Gemini
-              System of            Cache               Events                     AI
-               Record
-                                                          |
-                                                          v
-                                                   Async Consumers
+![Servicios](images/Servicios.png)
 
-                         Observability
+![Mis Servicios](images/Mis_servicios.png)
 
-Spring Boot --> Actuator --> Micrometer --> Prometheus --> Grafana
-```
+
+
+**SkillBridge AI** conecta a **proveedores** de servicios profesionales (mentorías de Java, Angular, arquitectura, DevOps, cloud, UX, etc.) con **clientes** que quieren descubrirlos, reservarlos y pagarlos. Un asistente de IA recomienda servicios del catálogo a partir de lo que el usuario escribe, **dice con su voz** o **muestra en una imagen**.
+
+El dominio de negocio es deliberadamente simple: sirve como vehículo para aplicar, en un mismo proyecto coherente, prácticas de ingeniería de nivel profesional:
+
+- Arquitectura **hexagonal** (puertos y adaptadores) con dominio libre de frameworks.
+- **Mensajería dual**: RabbitMQ para tareas asíncronas y Kafka para eventos de negocio y auditoría.
+- **Seguridad** con JWT en cookie `HttpOnly`, CSRF y control de acceso por roles.
+- **Idempotencia**, trazabilidad por `Correlation ID` y control de concurrencia.
+- **Observabilidad** con Prometheus y Grafana, y **CI** con GitHub Actions.
+
+> El proyecto completo se levanta con **un solo comando** (`docker compose up --build`) sin instalar Java, Node, PostgreSQL, Redis, RabbitMQ ni Kafka.
 
 ---
 
-# 4. Arquitectura Hexagonal del backend
+##  Características principales
+
+### Para clientes
+-  Catálogo público de servicios, servido con caché **Cache-Aside** en Redis.
+-  Reserva de sesiones con **clave de idempotencia** (sin reservas duplicadas por doble clic o reintentos).
+-  Cancelación de reservas propias con regla de **24 horas de anticipación**, historial de estados y operación idempotente.
+-  Autorización de pagos simulada, con resultado procesado de forma asíncrona vía RabbitMQ.
+-  Recomendaciones de IA por **texto, voz o imagen**.
+
+### Para proveedores
+-  CRUD de servicios propios (crear, editar, activar y desactivar) con invalidación de caché.
+-  Gestión de categorías.
+
+### Para administradores
+-  Administración de usuarios: listado paginado y ordenable, cambio de **rol** y **estado** (`ACTIVE` / `SUSPENDED`).
+-  Reglas de protección (un admin no puede modificar su propio rol o estado) y registro de auditoría.
+-  **Dashboard de auditoría** independiente con eventos de negocio casi en tiempo real.
+
+### Transversales
+-  Notificaciones asíncronas (simuladas o por **email** con Mailpit en desarrollo) con reintentos y **Dead Letter Queue**.
+-  `X-Correlation-Id` propagado desde HTTP hasta los eventos de Kafka.
+-  Métricas expuestas a Prometheus y dashboards en Grafana.
+
+---
+
+##  Arquitectura
+
+### Vista general del sistema
+
+```mermaid
+flowchart LR
+    U([Usuario]) --> NG[Nginx<br/>:8088]
+    NG -->|SPA| FE[Angular 20]
+    NG -->|/api/*| BE[Spring Boot API<br/>:8080]
+
+    BE --> PG[(PostgreSQL 17)]
+    BE --> RD[(Redis 8<br/>caché)]
+    BE -->|tareas y notificaciones| RB{{RabbitMQ 4}}
+    BE -->|eventos de negocio y auditoría| KF{{Apache Kafka}}
+    BE -->|SMTP| MP[Mailpit]
+    BE -->|HTTPS| AI[Gemini API]
+
+    RB -->|consumers| BE
+    KF --> AS[Audit Service<br/>:8081]
+    AS --> AF[Dashboard Angular<br/>:8090]
+
+    BE -. /actuator/prometheus .-> PR[Prometheus] --> GF[Grafana]
+```
+
+### Arquitectura hexagonal del backend
+
+El dominio y la capa de aplicación **no conocen** JPA, Redis, RabbitMQ, Kafka, HTTP ni ningún proveedor de IA. Toda dependencia externa entra a través de **puertos** y se implementa en **adaptadores**.
 
 ```text
 backend/src/main/java/com/riwi/skillbridge
-|
-+-- domain
-|   +-- model
-|   +-- exception
-|
-+-- application
-|   +-- port
-|   |   +-- in
-|   |   +-- out
-|   +-- service
-|
-+-- infrastructure
-    +-- adapter
-    |   +-- in
-    |   |   +-- rest
-    |   |   +-- messaging
-    |   +-- out
-    |       +-- persistence
-    |       +-- cache
-    |       +-- messaging
-    |       +-- ai
-    +-- config
-    +-- security
+│
+├── domain/                      ← Núcleo: reglas de negocio puras
+│   ├── model/                   Booking, Offering, UserAccount, Category, Payment*…
+│   ├── policy/ · service/       OfferingAccessPolicy, UserManagementPolicy, BookingCancellationPolicy
+│   ├── event/ · exception/
+│
+├── application/                 ← Casos de uso y contratos
+│   ├── port/in/                 Puertos de entrada (casos de uso)
+│   ├── port/out/                Puertos de salida (repositorios, caché, mensajería, IA, pagos…)
+│   └── service/                 Implementación de los casos de uso
+│
+└── infrastructure/              ← Adaptadores y configuración
+    ├── adapter/in/
+    │   ├── rest/                Controladores, DTOs, validación, manejo de errores (RFC 7807)
+    │   └── messaging/           Consumers de RabbitMQ y Kafka
+    ├── adapter/out/
+    │   ├── persistence/         JPA + PostgreSQL
+    │   ├── cache/               Redis
+    │   ├── messaging/           Publishers RabbitMQ y Kafka
+    │   ├── ai/                  Gemini / OpenAI / Groq
+    │   ├── notification/        Simulado / Email
+    │   └── payment/             Pasarela simulada
+    ├── security/                JWT, cookies, CSRF
+    └── config/
 ```
 
-## Regla de dependencia
-
-El dominio no debería saber que existen:
-
-- PostgreSQL;
-- JPA;
-- Redis;
-- RabbitMQ;
-- Gemini;
-- HTTP;
-- Angular;
-- Nginx.
-
-Ejemplo:
-
-```java
-public interface AiRecommendationPort {
-    String recommend(String goal, List<Offering> offerings);
-}
-```
-
-La aplicación depende de ese contrato.
-
-La infraestructura aporta una implementación:
-
-```text
-AiRecommendationPort
-        ^
-        |
-GeminiAiAdapter
-```
-
-Esto permite reemplazar Gemini por otro proveedor sin modificar el caso de uso.
+**Ejemplo de inversión de dependencias:** el caso de uso de recomendaciones depende de `AiRecommendationPort`; `GeminiAiAdapter` u `OpenAiAiAdapter` lo implementan. Cambiar de proveedor no toca el caso de uso.
 
 ---
 
-# 5. Tecnologías
+##  Stack tecnológico
 
-## Backend
-
-- Java 21
-- Spring Boot 3.5.x
-- Spring MVC
-- Spring Security
-- Spring Data JPA
-- Spring Data Redis
-- Spring AMQP
-- Bean Validation
-- Flyway
-- PostgreSQL
-- JWT
-- Spring Boot Actuator
-- Micrometer Prometheus
-- Springdoc OpenAPI
-- JUnit 5
-- Mockito
-- Testcontainers preparado como dependencia
-- JaCoCo
-
-## Frontend
-
-- Angular 20
-- Standalone Components
-- HttpClient
-- Functional Interceptor
-- Angular Router
-- Runtime configuration mediante `env.js`
-- Nginx para la imagen Docker de producción
-
-## Infraestructura
-
-- Docker
-- Docker Compose
-- PostgreSQL 17
-- Redis 8
-- RabbitMQ 4 Management
-- Nginx
-- Prometheus
-- Grafana
-
-## Cloud gratuito sugerido para laboratorio
-
-```text
-Frontend       -> Vercel Hobby
-Backend        -> Render Free Web Service
-PostgreSQL     -> Neon Free
-Redis          -> Upstash Redis Free
-RabbitMQ       -> CloudAMQP Little Lemur Free
-IA             -> Gemini Developer API Free Tier
-Repositorio    -> GitHub
-CI             -> GitHub Actions
-```
-
-> Los planes gratuitos cambian con el tiempo. Verifica siempre las páginas oficiales antes de una cohorte nueva.
+| Capa | Tecnologías |
+|---|---|
+| **Backend** | Java 21 · Spring Boot 3.5.6 · Spring MVC · Spring Security · Spring Data JPA · Spring AMQP · Spring Kafka · Spring AI 1.1.8 · Bean Validation · Springdoc OpenAPI · JJWT 0.12.6 · Lombok |
+| **Frontend** | Angular 20 (standalone components, router, interceptores funcionales) · Tailwind CSS 4 · RxJS |
+| **Datos** | PostgreSQL 17 (+ Flyway) · Redis 8 |
+| **Mensajería** | RabbitMQ 4 (con DLQ) · Apache Kafka (Confluent 7.8, modo KRaft) |
+| **IA** | Google Gemini (por defecto) · OpenAI (adaptador alternativo) · Groq (transcripción de audio, opcional) |
+| **Observabilidad** | Spring Actuator · Micrometer · Prometheus 3.5 · Grafana 12.1 |
+| **Calidad** | JUnit 5 · Mockito · Testcontainers · JaCoCo · Karma/Jasmine · Qodana |
+| **DevOps** | Docker (multi-stage) · Docker Compose · Nginx · GitHub Actions |
+| **Desarrollo** | Mailpit (captura de correos) |
 
 ---
 
-# 6. Requisitos locales
+##  Estructura del repositorio
 
-La ruta recomendada solo necesita:
+```text
+SkillBridge-AI-JAVA-Angular/
+├── backend/                  API principal (Spring Boot, arquitectura hexagonal)
+│   ├── src/main/resources/db/migration/   Migraciones Flyway V1–V7
+│   └── docs/                 Documentación de historias de usuario
+├── frontend/                 SPA Angular 20 servida por Nginx
+├── audit-service/            Microservicio de auditoría
+│   ├── backend/              Consumer de Kafka + API REST (Spring Boot)
+│   └── frontend/             Dashboard Angular + Tailwind
+├── ops/
+│   ├── prometheus/           Configuración de scraping
+│   └── grafana/              Provisioning de datasources
+├── docs/                     Arquitectura, API, ADRs, Kafka, CI/CD, backlog…
+├── scripts/                  Smoke test y pruebas E2E
+├── .github/workflows/        CI (build/test/Docker) y Qodana
+├── docker-compose.yml        Orquestación del stack completo
+├── Makefile                  Atajos de desarrollo
+└── .env.example              Plantilla de variables de entorno
+```
 
-- Git
-- Docker Engine / Docker Desktop
-- Docker Compose v2
+---
 
-**No es obligatorio instalar Java, Maven, Node, PostgreSQL, Redis ni RabbitMQ** para ejecutar el stack completo con Docker.
+##  Inicio rápido
 
-Comprueba:
+### Requisitos
+
+- [Git](https://git-scm.com/)
+- [Docker](https://docs.docker.com/get-docker/) con **Docker Compose v2**
 
 ```bash
-docker --version
-docker compose version
-git --version
+docker --version && docker compose version && git --version
 ```
 
----
-
-# 7. Ejecución local con Docker Compose
-
-## Paso 1 — Clonar
+### 1. Clonar el repositorio
 
 ```bash
 git clone <URL_DEL_REPOSITORIO>
-cd skillbridge-ai
+cd SkillBridge-AI-JAVA-Angular
 ```
 
-## Paso 2 — Variables de entorno
+### 2. Configurar variables de entorno
 
 ```bash
 cp .env.example .env
 ```
 
-Edita `.env`.
-
-Para ejecutar todo excepto IA puedes dejar:
+Edita `.env` y, como mínimo, define un secreto JWT propio y (opcionalmente) tu clave de Gemini:
 
 ```env
-GEMINI_API_KEY=
+JWT_SECRET=<cadena-aleatoria-de-al-menos-32-caracteres>
+GEMINI_API_KEY=<tu-api-key>      # opcional: sin ella todo funciona excepto la IA
 ```
 
-Para probar IA debes agregar una API key válida.
-
-La configuración recomendada para este proyecto es:
-
-```env
-GEMINI_MODEL=gemini-3.8-flash
-```
-
-La API key se utiliza únicamente en Spring Boot. Angular nunca se conecta
-directamente con Gemini.
-
-Cambia siempre el secreto JWT:
-
-```env
-JWT_SECRET=una-clave-larga-aleatoria-de-al-menos-32-caracteres
-```
-
-Puedes generar una:
+Puedes generar un secreto seguro con:
 
 ```bash
 openssl rand -base64 48
 ```
 
-## Paso 3 — Levantar
-
-```bash
-docker compose up --build
-```
-
-O en segundo plano:
+### 3. Levantar el stack
 
 ```bash
 docker compose up --build -d
-```
-
-Con Make:
-
-```bash
+# o, con Make:
 make up
 ```
 
-## Paso 4 — Verificar
+### 4. Verificar
 
 ```bash
-docker compose ps
+docker compose ps                       # todos los servicios deben estar healthy
+./scripts/smoke-test.sh                 # comprueba health y catálogo público
 ```
 
-Todos los servicios principales deberían estar `running`/`healthy`.
+Abre **http://localhost:8088** y listo. 
 
-## URLs locales
-
-| Servicio | URL |
-|---|---|
-| Aplicación Angular vía Nginx | http://localhost:8088 |
-| Backend directo | http://localhost:8080 |
-| Swagger | http://localhost:8080/swagger-ui.html |
-| Health | http://localhost:8080/actuator/health |
-| RabbitMQ Management | http://localhost:15672 |
-| PostgreSQL | localhost:5432 |
-
-RabbitMQ local:
-
-```text
-user: guest
-password: guest
-```
+> La primera construcción descarga imágenes y dependencias; puede tardar varios minutos. Kafka y RabbitMQ deben estar `healthy` antes de que arranque el backend.
 
 ---
 
-# 8. Primer recorrido funcional
+##  Servicios y puertos
 
-## 8.1 Catálogo público
+| Servicio                      | URL | Notas |
+|-------------------------------|---|---|
+| **Aplicación web**            | http://localhost:8088 | Angular + Nginx (proxy de `/api`) |
+| **API backend**               | http://localhost:8080 | Acceso directo |
+| **Swagger UI**                | http://localhost:8080/swagger-ui.html | Documentación interactiva |
+| **Health**                    | http://localhost:8080/actuator/health | Liveness: `/actuator/health/liveness` |
+| **Dashboard de auditoría**    | http://localhost:8090 | Frontend del audit-service |
+| **API de auditoría**          | http://localhost:8081/api/audit/events | |
+| **RabbitMQ Management**       | http://localhost:15672 | `guest` / `guest` |
+| **Mailpit (correos de prueba)** | http://localhost:8025 | Bandeja SMTP de desarrollo |
+| **PostgreSQL**                | `localhost:5433` | Usuario/BD: `skillbridge` |
+| **Kafka** (host)            | `localhost:9092` | Interno: `kafka:29092` |
+| **Prometheus**              | http://localhost:9090 | Solo con profile `observability` |
+| **Grafana**                 | http://localhost:3000 | `admin` / `admin` · profile `observability` |
 
-```bash
-curl http://localhost:8080/api/offerings
-```
-
-Haz la petición dos veces.
-
-La primera puede llegar a PostgreSQL y guardar el resultado en Redis. La siguiente será candidata a resolverse desde Redis.
-
-Para inspeccionar Redis:
-
-```bash
-docker compose exec redis redis-cli
-```
-
-Luego:
-
-```redis
-KEYS *
-GET offerings:active
-TTL offerings:active
-```
-
-## 8.2 Registrar usuario
-
-```bash
-curl -X POST http://localhost:8080/api/auth/register \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "name":"Ada Lovelace",
-    "email":"ada@example.com",
-    "password":"Password123"
-  }'
-```
-
-Obtendrás:
-
-```json
-{
-  "token": "...",
-  "tokenType": "Bearer"
-}
-```
-
-También puedes hacerlo desde la interfaz Angular.
-
-## 8.3 Crear una reserva
-
-Copia el JWT y ejecuta:
-
-```bash
-TOKEN="PEGA_EL_TOKEN"
-```
-
-Uno de los servicios iniciales tiene este id:
-
-```text
-11111111-1111-1111-1111-111111111111
-```
-
-Crea una reserva con una fecha futura:
-
-```bash
-curl -X POST http://localhost:8080/api/bookings \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "offeringId":"11111111-1111-1111-1111-111111111111",
-    "scheduledAt":"2030-10-10T15:00:00Z"
-  }'
-```
-
-Ahora entra a:
-
-```text
-http://localhost:15672
-```
-
-Busca:
-
-```text
-booking.created.queue
-```
-
-El consumer de Spring debería consumir el evento.
-
-Logs:
-
-```bash
-docker compose logs -f backend
-```
-
-Deberías ver una línea similar a:
-
-```text
-Async booking notification -> bookingId=...
-```
-
-## 8.4 Probar recomendaciones con Gemini
-
-La pantalla de IA requiere una sesión iniciada. Puedes registrarte desde:
-
-```text
-http://localhost:8088/login
-```
-
-Después entra en:
-
-```text
-http://localhost:8088/ai
-```
-
-Escribe un objetivo, por ejemplo:
-
-```text
-Quiero aprender arquitectura hexagonal con Java y Spring Boot
-```
-
-Pulsa **Pedir recomendación**. El backend consultará Gemini y devolverá hasta
-tres servicios del catálogo relacionados con el objetivo.
-
-También puedes probar el endpoint directamente con el JWT obtenido al
-registrarte o iniciar sesión:
-
-```bash
-curl -X POST http://localhost:8080/api/ai/recommendations \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{"goal":"Quiero aprender arquitectura hexagonal con Java"}'
-```
-
-Si Gemini no está configurado, la respuesta indicará que falta
-`GEMINI_API_KEY`. Si el proveedor está temporalmente indisponible, el backend
-devolverá un error controlado en lugar de dejar la petición esperando
-indefinidamente.
+> Los puertos de infraestructura se publican únicamente en `127.0.0.1` por seguridad. Los frontends (`8088` y `8090`) se publican en todas las interfaces.
 
 ---
 
-# 9. RabbitMQ profesional: retry + DLQ
+##  Usuarios de prueba
 
-La cola principal está configurada con una Dead Letter Queue:
+Las migraciones de Flyway crean tres cuentas para explorar cada rol (contraseña común: `12345678`):
 
-```text
-booking.events
-      |
-      v
-booking.created.queue
-      |
-   consumer
-      |
-   falla x3
-      |
-      v
- booking.dlx
-      |
-      v
-booking.created.dlq
-```
-
-Los estudiantes pueden provocar una excepción temporal en el consumer y observar el comportamiento.
-
-Conceptos a discutir:
-
-- Producer.
-- Consumer.
-- Exchange.
-- Routing Key.
-- Queue.
-- Acknowledgement.
-- Retry.
-- Dead Letter Queue.
-- Message durability.
-- Idempotency.
-- Eventual consistency.
-
-### Reto avanzado
-
-Implementar **Transactional Outbox**.
-
-El starter publica el evento después de persistir la reserva. En un sistema crítico existe una ventana de fallo entre la transacción de PostgreSQL y RabbitMQ. El patrón Outbox es la evolución recomendada para resolver ese problema.
-
----
-
-# 10. IA y Proveedores
-
-## 10.1 Arquitectura de Proveedores de IA
-
-SkillBridge soporta múltiples proveedores de IA sin cambio de código. El proveedor se selecciona mediante configuración en tiempo de ejecución.
-
-### Proveedores Soportados
-
-#### Gemini (Google)
-- **Modelo**: `gemini-3.8-flash`
-- **Latencia**: ~1350ms
-- **Costo**: ~$0.000035 por request
-- **Característica**: Ideal para desarrollo (free tier disponible)
-
-#### OpenAI
-- **Modelo**: `gpt-4-turbo` (recomendado) o `gpt-3.5-turbo` (económico)
-- **Latencia**: ~1050ms (22% más rápido que Gemini)
-- **Costo**: ~$0.0039 (GPT-4) o ~$0.000195 (GPT-3.5) por request
-- **Característica**: Mejor calidad, más consistente
-
-**Para más detalles**, ve a `docs/AI_PROVIDER_COMPARISON.md`.
-
-### Cambiar Proveedor
-
-No requiere recompilación. Solo configura la variable de entorno:
-
-```bash
-# Desarrollo (Gemini - costo $0)
-export APP_AI_PROVIDER=gemini
-export GEMINI_API_KEY=...
-
-# Producción (OpenAI - mejor calidad)
-export APP_AI_PROVIDER=openai
-export OPENAI_API_KEY=...
-```
-
-**Nota**: Solo una API key es necesaria según el proveedor activo.
-
-### Arquitectura Interna
-
-La abstracción se implementa con el patrón Adapter:
-
-```
-AiRecommendationPort (interface)
-    ↑                    ↑
-    │                    │
-GeminiAiAdapter    OpenAiAdapter
-    ↓                    ↓
-Spring AI ChatClient (Unificada)
-```
-
-Spring elige automáticamente la implementación correcta basada en `app.ai.provider`.
-
-**Para detalles de arquitectura**, consulta `docs/ADR-001-AI-PROVIDER-ABSTRACTION.md`.
-
-## 10.2 Configuración
-
-### En Docker
-
-Edita `.env`:
-
-```env
-# Proveedor a utilizar
-APP_AI_PROVIDER=gemini
-
-# Gemini (si APP_AI_PROVIDER=gemini)
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.8-flash
-
-# OpenAI (si APP_AI_PROVIDER=openai)
-OPENAI_API_KEY=...
-OPENAI_MODEL=gpt-4-turbo-preview
-
-# Común a ambos
-AI_PROVIDER_TIMEOUT_SECONDS=10
-```
-
-### En Render
-
-Agrega las variables según el proveedor:
-
-```env
-APP_AI_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-```
-
-O para Gemini:
-
-```env
-APP_AI_PROVIDER=gemini
-GEMINI_API_KEY=...
-```
-
-## 10.3 Seguridad
-
-Crea una API key del proveedor y colócala únicamente en variables de entorno:
-
-```env
-GEMINI_API_KEY=...
-OPENAI_API_KEY=...
-```
-
-**Nunca** hagas esto en Angular:
-
-```typescript
-const API_KEY = 'secret'; // ❌ NO
-```
-
-El navegador es un entorno no confiable: cualquier secreto incluido en el bundle frontend puede ser inspeccionado con DevTools.
-
-## 10.4 Endpoint
-
-```text
-POST /api/ai/recommendations
-```
-
-Ejemplo:
-
-```bash
-curl -X POST http://localhost:8080/api/ai/recommendations \
-  -H "Authorization: Bearer $TOKEN" \
-  -H 'Content-Type: application/json' \
-  -d '{
-    "goal":"Quiero prepararme para una entrevista Java backend y mejorar arquitectura"
-  }'
-```
-
-La IA solo recibe:
-
-- objetivo textual;
-- catálogo público disponible.
-
-No recibe contraseña, JWT ni datos internos.
-
-Para un entorno educativo evita introducir información confidencial o datos personales reales en prompts de servicios gratuitos.
-
-## 10.5 Tests
-
-Ambos adaptadores tienen cobertura completa:
-
-```bash
-cd backend
-mvn test -Dtest=GeminiAiAdapterTest,OpenAiAiAdapterTest
-```
-
-Cada prueba verifica:
-
-- Errores de configuración (API key faltante)
-- Errores de red/timeout
-- Respuestas vacías
-- Manejo de excepciones
-
-## 10.6 Recomendación
-
-| Escenario | Proveedor | Razón |
+| Rol | Email | Contraseña |
 |---|---|---|
-| Desarrollo local | Gemini | Free tier, fácil setup |
-| Demo/Prototipo | Gemini | Costo ≈ $0 para 1500 req/día |
-| Producción crítica | OpenAI 3.5-turbo | Balance calidad/costo ($702/año) |
-| Máxima calidad | OpenAI 4-turbo | Mejor reasoning (+8% calidad) |
+| **ADMIN** | `admin@gmail.com` | `12345678` |
+| **PROVIDER** | `provider@gmail.com` | `12345678` |
+| **CUSTOMER** | `user@gmail.com` | `12345678` |
+
+Además, al iniciar la aplicación se crea (si no existe) un usuario administrador `admin` / `12345678`.
+
+>  **Solo para desarrollo.** Elimina o cambia estas credenciales antes de cualquier despliegue público (ver [Seguridad](#-seguridad)).
+
+Los nuevos registros desde `/api/auth/register` se crean siempre con rol `CUSTOMER`.
 
 ---
 
-# 11. Nginx
+##  Configuración
 
-El frontend usa un Dockerfile multi-stage:
+Toda la configuración se inyecta mediante variables de entorno. Docker Compose lee el archivo `.env` de la raíz.
 
-```text
-Node 22
-  |
-  | npm run build
-  v
-Angular dist
-  |
-  v
-Nginx
-```
+### Backend principal
 
-La imagen final no necesita Node. El upstream se parametriza con `BACKEND_URL` y la imagen oficial de Nginx genera su configuración al iniciar.
+| Variable | Valor por defecto | Descripción |
+|---|---|---|
+| `DATABASE_URL` | `jdbc:postgresql://localhost:5432/skillbridge` | URL JDBC de PostgreSQL |
+| `DATABASE_USER` / `DATABASE_PASSWORD` | `skillbridge` / `skillbridge_dev` | Credenciales de BD |
+| `DB_POOL_SIZE` | `5` | Tamaño del pool Hikari |
+| `REDIS_URL` | `redis://localhost:6379` | Conexión a Redis (usa `rediss://` con TLS) |
+| `RABBITMQ_URL` | `amqp://guest:guest@localhost:5672` | Conexión a RabbitMQ (`amqps://` en cloud) |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Brokers de Kafka |
+| `KAFKA_TOPIC_BOOKING_EVENTS` | `booking-events` | Topic de eventos de negocio |
+| `KAFKA_CONSUMER_GROUP` | `skillbridge-audit-group` | Consumer group |
+| `JWT_SECRET` | *(valor de ejemplo)* | **Obligatorio cambiarlo.** Mínimo 32 caracteres |
+| `JWT_EXPIRATION_MINUTES` | `120` | Vigencia del token |
+| `JWT_COOKIE_NAME` | `access_token` | Nombre de la cookie de sesión |
+| `JWT_COOKIE_SECURE` | `true` | Cookie solo por HTTPS |
+| `JWT_COOKIE_SAME_SITE` | `None` | Política SameSite |
+| `CORS_ALLOWED_ORIGINS` | `http://localhost:8088,http://localhost:4200` | Orígenes permitidos (separados por coma) |
+| `OFFERINGS_CACHE_TTL_MINUTES` | `10` | TTL del catálogo en Redis |
+| `BOOKING_CANCELLATION_MINIMUM_NOTICE_HOURS` | `24` | Anticipación mínima para cancelar |
+| `NOTIFICATIONS_SENDER` | `simulated` | `simulated` o `email` |
+| `NOTIFICATIONS_EMAIL_FROM` | `no-reply@skillbridge.local` | Remitente de correos |
+| `MAIL_HOST` / `MAIL_PORT` | `localhost` / `1025` | Servidor SMTP (Mailpit en Docker) |
+| `MAIL_USERNAME` / `MAIL_PASSWORD` | *(vacío)* | Credenciales SMTP |
+| `MAIL_SMTP_AUTH` / `MAIL_SMTP_STARTTLS` | `false` | Opciones SMTP |
 
-Nginx cumple dos funciones:
+### Inteligencia artificial
 
-1. Servir el build estático de Angular.
-2. Reverse proxy de `/api/*` hacia Spring Boot.
+| Variable | Valor por defecto | Descripción |
+|---|---|---|
+| `AI_PROVIDER` | `gemini` | Proveedor de recomendaciones (`gemini` u `openai`) |
+| `GEMINI_API_KEY` | *(vacío)* | Clave de Gemini (solo backend) |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | Modelo multimodal |
+| `OPENAI_API_KEY` | *(vacío)* | Clave de OpenAI (si se usa ese proveedor) |
+| `AI_TIMEOUT_SECONDS` | `10` | Timeout de llamadas al proveedor |
+| `AI_MEDIA_MAX_AUDIO_BYTES` | `10485760` | Límite de audio (10 MB) |
+| `AI_MEDIA_MAX_IMAGE_BYTES` | `5242880` | Límite de imagen (5 MB) |
+| `AI_MULTIPART_MAX_FILE_SIZE` / `AI_MULTIPART_MAX_REQUEST_SIZE` | `10MB` | Límites multipart de Spring |
 
-```text
-http://localhost:8088/
-       |
-       v
-     Nginx
-     /   \
-    /     \
-Angular  /api/*
-          |
-          v
-      backend:8080
-```
+### Frontend
 
-Angular consume:
-
-```text
-/api
-```
-
-en lugar de acoplarse a `localhost:8080`.
-
-Además `try_files` permite que Angular Router funcione al refrescar rutas del SPA.
-
----
-
-# 12. Observabilidad
-
-Los servicios de observabilidad están detrás de un profile para no consumir recursos siempre.
-
-Levanta todo con:
-
-```bash
-docker compose --profile observability up --build -d
-```
-
-O:
-
-```bash
-make observability
-```
-
-URLs:
-
-| Servicio | URL |
+| Variable | Descripción |
 |---|---|
-| Prometheus | http://localhost:9090 |
-| Grafana | http://localhost:3000 |
+| `API_URL` | URL base de la API (por defecto `/api`). Se inyecta en build vía `scripts/generate-env.mjs` → `env.js` |
+| `BACKEND_URL` | (Imagen Nginx) Upstream del backend. Por defecto `http://backend:8080` |
 
-Grafana local:
-
-```text
-user: admin
-password: admin
-```
-
-Prometheus consulta:
-
-```text
-http://backend:8080/actuator/prometheus
-```
-
-Prueba métricas como:
-
-```text
-http_server_requests_seconds_count
-jvm_memory_used_bytes
-process_cpu_usage
-```
-
-En Grafana crea un dashboard con:
-
-- requests por endpoint;
-- latencia;
-- errores 4xx/5xx;
-- memoria JVM;
-- CPU;
-- threads.
+> **Nunca** subas `.env` al repositorio (ya está en `.gitignore`) ni expongas secretos en el código Angular.
 
 ---
 
-# 13. Ejecutar backend sin Docker
+##  API REST
 
-Requisitos:
+Documentación interactiva completa en **Swagger UI**: `http://localhost:8080/swagger-ui.html`.
 
-- JDK 21
-- Maven 3.9+
-- PostgreSQL
-- Redis
-- RabbitMQ
+### Autenticación
 
-Ejemplo:
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| `POST` | `/api/auth/register` | Público | Registra un `CUSTOMER` y abre sesión |
+| `POST` | `/api/auth/login` | Público | Inicia sesión (cookie `HttpOnly`) |
+| `POST` | `/api/auth/logout` | Público | Cierra sesión |
+| `GET` | `/api/auth/me` | Autenticado | Usuario y rol actuales |
+
+### Catálogo y categorías
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| `GET` | `/api/offerings` | Público | Servicios activos (caché Redis) |
+| `GET` | `/api/offerings/me` | `PROVIDER` | Servicios del proveedor autenticado |
+| `POST` | `/api/offerings` | `PROVIDER`, `ADMIN` | Crea un servicio |
+| `PUT` | `/api/offerings/{id}` | `PROVIDER` (dueño), `ADMIN` | Actualiza un servicio |
+| `POST` | `/api/offerings/{id}/activate` | `PROVIDER` (dueño), `ADMIN` | Reactiva un servicio |
+| `POST` | `/api/offerings/{id}/deactivate` | `PROVIDER` (dueño), `ADMIN` | Desactiva un servicio |
+| `GET` | `/api/admin/offerings` | `ADMIN` | Todos los servicios |
+| `GET` | `/api/categorias` | Autenticado | Categorías activas |
+| `POST` | `/api/categorias` | `PROVIDER`, `ADMIN` | Crea una categoría |
+
+### Reservas y pagos
+
+| Método | Ruta | Acceso | Descripción |
+|---|---|---|---|
+| `POST` | `/api/bookings` | Autenticado + `Idempotency-Key` | Crea una reserva (idempotente) |
+| `GET` | `/api/bookings/me` | Autenticado | Reservas del usuario |
+| `PATCH` | `/api/bookings/{id}/cancel` | Autenticado (dueño) | Cancela una reserva |
+| `POST` | `/api/payments/authorize` | Autenticado + `Idempotency-Key` | Autoriza un pago simulado |
+
+### Inteligencia artificial
+
+| Método | Ruta | Cuerpo |
+|---|---|---|
+| `POST` | `/api/ai/recommendations` | JSON `{ "goal": "..." }` |
+| `POST` | `/api/ai/recommendations/voice` | `multipart/form-data`, campo `file` (audio) |
+| `POST` | `/api/ai/recommendations/image` | `multipart/form-data`, campo `file` (imagen) |
+
+### Administración de usuarios (`ADMIN`)
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/api/admin/users?page=0&size=20&sort=createdAt,desc` | Listado paginado (orden: `name`, `email`, `role`, `status`, `createdAt`) |
+| `GET` | `/api/admin/users/{id}` | Detalle |
+| `PUT` | `/api/admin/users/{id}/status` | `{"status":"ACTIVE\|SUSPENDED"}` |
+| `PUT` | `/api/admin/users/{id}/role` | `{"role":"CUSTOMER\|PROVIDER\|ADMIN"}` |
+
+### Ejemplos con `curl`
 
 ```bash
-cd backend
-mvn spring-boot:run
+# Catálogo público
+curl http://localhost:8080/api/offerings
+
+# Registro con Bearer (devuelve cookie de sesión; usa -c/-b para persistirla)
+curl -i -c cookies.txt -X POST http://localhost:8080/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"user@gmail.com","password":"12345678"}'
+
+# Crear una reserva idempotente
+curl -X POST http://localhost:8080/api/bookings \
+  -b cookies.txt \
+  -H 'Content-Type: application/json' \
+  -H 'Idempotency-Key: 7c9e6679-7425-40de-944b-e07fc1f90ae7' \
+  -H "X-XSRF-TOKEN: $(grep XSRF-TOKEN cookies.txt | awk '{print $7}')" \
+  -d '{"offeringId":"11111111-1111-1111-1111-111111111111","scheduledAt":"2030-10-10T15:00:00Z"}'
 ```
 
-Pero para el laboratorio se recomienda Docker Compose para evitar diferencias de configuración entre equipos.
+### Códigos de respuesta y errores
 
----
-
-# 14. Ejecutar Angular sin Docker
-
-```bash
-cd frontend
-npm install
-npm start
-```
-
-Abre:
-
-```text
-http://localhost:4200
-```
-
-El `proxy.conf.json` envía `/api` hacia:
-
-```text
-http://localhost:8080
-```
-
----
-
-# 15. Tests
-
-## Backend
-
-```bash
-cd backend
-mvn clean verify
-```
-
-El reporte JaCoCo queda en:
-
-```text
-backend/target/site/jacoco/index.html
-```
-
-El proyecto incluye un ejemplo de prueba de `OfferingService` que demuestra que cuando existe cache hit el repositorio no debe consultarse.
-
-## Siguiente nivel recomendado
-
-Agregar Testcontainers para probar:
-
-- PostgreSQL real.
-- Flyway migrations.
-- repositorios JPA.
-- Redis.
-- RabbitMQ.
-
----
-
-# 16. CI con GitHub Actions
-
-Existe:
-
-```text
-.github/workflows/ci.yml
-```
-
-En cada Pull Request ejecuta:
-
-```text
-Backend
-  -> Java 21
-  -> mvn clean verify
-
-Frontend
-  -> Node 22
-  -> npm install
-  -> npm run build
-
-Docker
-  -> build backend image
-  -> build frontend image
-```
-
-Para una cohorte real recomiendo que después de ejecutar una vez `npm install` se confirme el `package-lock.json` al repositorio y se cambien los comandos a `npm ci` para builds completamente reproducibles.
-
----
-
-# 17. Despliegue gratuito recomendado
-
-## Arquitectura cloud académica
-
-```text
-                         USER
-                           |
-                           v
-                    +-------------+
-                    |   Vercel    |
-                    |   Angular   |
-                    +------+------+ 
-                           |
-                         HTTPS
-                           |
-                           v
-                    +-------------+
-                    |   Render    |
-                    | Spring Boot |
-                    +------+------+ 
-                           |
-          +----------------+------------------+----------------+
-          |                |                  |                |
-          v                v                  v                v
-        Neon            Upstash           CloudAMQP         Gemini
-      PostgreSQL         Redis             RabbitMQ           API
-```
-
-Esta topología prioriza costo $0 para demos y formación.
-
-En un entorno empresarial real podrían reemplazarse por RDS/Aurora, ElastiCache, Amazon MQ/MSK, Kubernetes, ECS, etc.
-
----
-
-# 18. Crear PostgreSQL gratuito en Neon
-
-1. Crea una cuenta en Neon.
-2. Crea un proyecto PostgreSQL.
-3. Abre `Connection Details`.
-4. Copia host, database, user y password.
-5. Usa una URL JDBC.
-
-Ejemplo conceptual:
-
-```text
-jdbc:postgresql://HOST/DATABASE?sslmode=require
-```
-
-Variables para Render:
-
-```env
-DATABASE_URL=jdbc:postgresql://HOST/DATABASE?sslmode=require
-DATABASE_USER=USUARIO
-DATABASE_PASSWORD=PASSWORD
-```
-
-No subas estas credenciales al repositorio.
-
-Neon mantiene un plan gratuito adecuado para aprendizaje y prototipos. Verifica límites actuales en:
-
-https://neon.com/pricing
-
----
-
-# 19. Crear Redis gratuito en Upstash
-
-1. Ingresa a Upstash.
-2. Crea una Redis Database Free.
-3. Selecciona una región cercana cuando sea posible.
-4. Copia la URL TLS de Redis.
-
-Debe verse conceptualmente como:
-
-```text
-rediss://default:PASSWORD@HOST:PORT
-```
-
-En Render:
-
-```env
-REDIS_URL=rediss://...
-```
-
-No coloques la URL en Angular.
-
-Página oficial:
-
-https://upstash.com/pricing/redis
-
----
-
-# 20. Crear RabbitMQ gratuito en CloudAMQP
-
-1. Crea una cuenta en CloudAMQP.
-2. Crea una instancia.
-3. Selecciona el plan gratuito **Little Lemur** si sigue disponible.
-4. Abre los detalles de la instancia.
-5. Copia la AMQP URL.
-
-Ejemplo:
-
-```text
-amqps://USER:PASSWORD@HOST/VHOST
-```
-
-En Render:
-
-```env
-RABBITMQ_URL=amqps://...
-```
-
-Página oficial:
-
-https://www.cloudamqp.com/plans.html
-
-La cola es durable. Si el backend gratuito se duerme, los mensajes pueden permanecer en RabbitMQ hasta que la aplicación vuelva a conectarse.
-
----
-
-# 21. Gemini Developer API
-
-1. Abre Google AI Studio.
-2. Crea una API key para un proyecto de laboratorio.
-3. Configúrala únicamente en Render:
-
-```env
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.8-flash
-```
-
-Página de precios/límites:
-
-https://ai.google.dev/gemini-api/docs/pricing
-
-El modelo es parametrizable. Si Google cambia los modelos disponibles, cambia `GEMINI_MODEL` sin modificar la arquitectura.
-
----
-
-# 22. Desplegar Spring Boot en Render
-
-## Paso 1
-
-Sube este repositorio a GitHub.
-
-## Paso 2
-
-En Render:
-
-```text
-New -> Web Service
-```
-
-Conecta GitHub.
-
-## Paso 3
-
-Selecciona el repositorio.
-
-Configura:
-
-```text
-Root Directory: backend
-Runtime: Docker
-Plan: Free
-```
-
-Render encontrará:
-
-```text
-backend/Dockerfile
-```
-
-## Paso 4 — Variables
-
-Agrega:
-
-```env
-DATABASE_URL=jdbc:postgresql://...
-DATABASE_USER=...
-DATABASE_PASSWORD=...
-REDIS_URL=rediss://...
-RABBITMQ_URL=amqps://...
-JWT_SECRET=...
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-3.8-flash
-CORS_ALLOWED_ORIGINS=https://TU-FRONTEND.vercel.app
-```
-
-`PORT` normalmente es proporcionado por Render y Spring lo consume mediante:
-
-```yaml
-server:
-  port: ${PORT:8080}
-```
-
-## Paso 5 — Health check
-
-Configura:
-
-```text
-/actuator/health/liveness
-```
-
-Usamos **liveness** para comprobar que el proceso Java sigue vivo sin convertir una caída temporal de Redis/RabbitMQ en un reinicio innecesario. El endpoint general `/actuator/health` sigue siendo útil para diagnosticar dependencias.
-
-## Paso 6
-
-Deploy.
-
-Obtendrás algo parecido a:
-
-```text
-https://skillbridge-api.onrender.com
-```
-
-Prueba:
-
-```text
-https://skillbridge-api.onrender.com/actuator/health
-```
-
-### Importante sobre Render Free
-
-Los servicios gratuitos pueden entrar en suspensión por inactividad y presentar cold start. Es apropiado para laboratorio, demostraciones y portafolio, no para una aplicación que requiera disponibilidad continua.
-
-Docs:
-
-https://render.com/docs/free
-
----
-
-# 23. Desplegar Angular en Vercel
-
-El frontend incorpora configuración runtime generada durante build.
-
-No necesitas cambiar el código TypeScript para cada ambiente.
-
-## Paso 1
-
-En Vercel:
-
-```text
-Add New -> Project
-```
-
-Importa el mismo repositorio.
-
-## Paso 2
-
-Configura:
-
-```text
-Root Directory: frontend
-```
-
-El `vercel.json` ya especifica el build y el fallback del SPA.
-
-## Paso 3 — Variable
-
-Agrega:
-
-```env
-API_URL=https://TU-BACKEND.onrender.com/api
-```
-
-Durante:
-
-```bash
-npm run build
-```
-
-se ejecuta:
-
-```text
-scripts/generate-env.mjs
-```
-
-y se genera:
-
-```javascript
-window.__env = {
-  API_URL: "https://TU-BACKEND.onrender.com/api"
-};
-```
-
-## Paso 4
-
-Deploy.
-
-Obtendrás:
-
-```text
-https://skillbridge-ai.vercel.app
-```
-
-## Paso 5 — CORS
-
-Vuelve a Render y asegúrate de que:
-
-```env
-CORS_ALLOWED_ORIGINS=https://skillbridge-ai.vercel.app
-```
-
-Si tienes preview URLs, agrega solo las que realmente necesites, separadas por coma.
-
-Pricing:
-
-https://vercel.com/pricing
-
----
-
-# 24. ¿Y Nginx en producción si Vercel sirve Angular?
-
-Esta es una decisión arquitectónica importante.
-
-### Local/containerizado
-
-```text
-Nginx -> Angular + reverse proxy -> Spring
-```
-
-### Vercel gratuito
-
-```text
-Vercel Edge/CDN -> Angular
-Angular -> HTTPS -> Render Spring
-```
-
-En Vercel, su infraestructura cumple el rol de servir y enrutar los archivos estáticos. Por eso el contenedor Nginx no participa en esa topología.
-
-Sin embargo, **la imagen Docker de Angular + Nginx sigue siendo válida para cualquier plataforma que ejecute contenedores**.
-
-Si quieres demostrar Nginx también en cloud, puedes desplegar `frontend/Dockerfile` como un segundo Web Service de Render y configurar `BACKEND_URL=https://TU-BACKEND.onrender.com`. Para una cohorte numerosa no es la opción $0 más eficiente porque consume más horas de cómputo.
-
----
-
-# 25. Variables de producción
-
-## Backend
-
-| Variable | Propósito |
-|---|---|
-| `DATABASE_URL` | JDBC PostgreSQL |
-| `DATABASE_USER` | usuario DB |
-| `DATABASE_PASSWORD` | password DB |
-| `REDIS_URL` | Redis local/cloud |
-| `RABBITMQ_URL` | AMQP/AMQPS |
-| `JWT_SECRET` | firma JWT |
-| `JWT_EXPIRATION_MINUTES` | expiración del token |
-| `GEMINI_API_KEY` | key IA |
-| `GEMINI_MODEL` | modelo IA |
-| `CORS_ALLOWED_ORIGINS` | orígenes frontend |
-| `OFFERINGS_CACHE_TTL_MINUTES` | TTL de catálogo |
-| `DB_POOL_SIZE` | Hikari pool |
-
-## Frontend
-
-| Variable | Propósito |
-|---|---|
-| `API_URL` | URL pública del backend + `/api` |
-
----
-
-# 26. Seguridad
-
-El starter implementa:
-
-- password BCrypt;
-- JWT firmado;
-- API stateless;
-- rutas públicas y autenticadas;
-- CORS parametrizable;
-- validación de requests;
-- secretos por variables de entorno;
-- usuario no-root en el contenedor Java;
-- headers básicos en Nginx.
-
-## Los estudiantes deben agregar
-
-- autorización por método con `@PreAuthorize`;
-- refresh token o sesiones seguras según diseño;
-- política de contraseñas;
-- rate limiting;
-- account lock / brute-force protection;
-- auditoría;
-- rotación de secretos;
-- manejo seguro de PII;
-- autorización por recurso, no solo por rol.
-
----
-
-# 27. Manejo de errores
-
-El backend usa `ProblemDetail` de Spring, basado en RFC 7807/9457-style problem responses.
-
-Ejemplo conceptual:
+Los errores siguen el formato **ProblemDetail (RFC 7807/9457)**:
 
 ```json
 {
@@ -1393,466 +434,438 @@ Ejemplo conceptual:
 }
 ```
 
-No deben responder simplemente:
+| Código | Significado |
+|---|---|
+| `400` | Datos inválidos o cabecera `Idempotency-Key` ausente |
+| `401` | No autenticado / token inválido |
+| `403` | Rol insuficiente o cuenta suspendida |
+| `404` | Recurso inexistente (o ajeno, para no revelar su existencia) |
+| `409` | `Idempotency-Key` reutilizada con un cuerpo distinto |
+| `413` | Archivo multimedia demasiado grande |
+| `422` | Regla de negocio violada |
+| `503` | Proveedor de IA no disponible |
+
+---
+
+##  Flujos clave
+
+### Consulta de catálogo (Cache-Aside)
+
+```mermaid
+flowchart TD
+    A[GET /api/offerings] --> B{¿En Redis?}
+    B -- HIT --> D[Respuesta]
+    B -- MISS --> C[(PostgreSQL)] --> E[Guardar en Redis<br/>TTL configurable] --> D
+```
+
+Las operaciones de escritura sobre servicios invalidan la caché a través de `OfferingCachePort`.
+
+### Creación de reserva
+![Reservas](images/Reservar.png)
+
+
+```mermaid
+sequenceDiagram
+    participant C as Cliente (Angular)
+    participant API as Spring Boot
+    participant DB as PostgreSQL
+    participant RMQ as RabbitMQ
+    participant K as Kafka
+    participant N as Notification Consumer
+
+    C->>API: POST /api/bookings (Idempotency-Key)
+    API->>API: Valida reglas y clave de idempotencia
+    API->>DB: Guarda la reserva
+    API->>RMQ: Publica notificación
+    API->>K: Publica BookingCreated
+    API-->>C: 201 Created
+    RMQ->>N: Entrega asíncrona (retry + DLQ)
+```
+
+### Máquina de estados de una reserva
+
+![Reservas](images/reservas.png)
+
+| Estado inicial | Acción | Resultado |
+|---|---|---|
+| `CREATED` | Cancelar (≥ 24 h antes) | `CANCELLED` + historial + notificación + evento |
+| `CANCELLED` | Cancelar de nuevo | `200 OK` idempotente, sin efectos adicionales |
+| `CONFIRMED` / `COMPLETED` | Cancelar | `422` (regla de negocio) |
+
+La cancelación usa **bloqueo pesimista** de escritura más **versionado optimista** para garantizar una única transición bajo concurrencia.
+
+### Pago simulado
+
+![img.png](img.png)
+`POST /api/payments/authorize` exige `Idempotency-Key`. El adaptador simulado es determinista:
+
+| Condición | Resultado |
+|---|---|
+| Tarjeta terminada en `0000` | `DECLINED` |
+| CVV = `TIMEOUT` | `DECLINED` tras 2 s (timeout simulado) |
+| CVV = `ERROR` | Error del sistema de pagos |
+| Cualquier otro caso | `APPROVED` |
+
+El resultado se publica en el exchange `payment.events` y un consumer actualiza la reserva.
+
+---
+
+##  Mensajería: RabbitMQ y Kafka
+
+El proyecto usa **ambos** brokers con responsabilidades distintas:
+
+| | **RabbitMQ** | **Apache Kafka** |
+|---|---|---|
+| **Propósito** | Tareas asíncronas y notificaciones | Eventos de negocio persistentes y auditoría |
+| **Naturaleza** | Mensajes transitorios (se eliminan al consumirse) | Log de eventos que múltiples consumidores pueden releer |
+| **Uso aquí** | Notificaciones de reserva, resultados de pago | `BookingCreated`, `BookingCancelled`, `UserLoggedIn`, `UserRegistered`, eventos de ofertas y recomendaciones |
+
+### Topología RabbitMQ
+
+| Elemento | Nombre |
+|---|---|
+| Exchange de notificaciones | `notification.exchange` (topic) |
+| Claves de enrutamiento | `notification.booking.created`, `notification.booking.cancelled` |
+| Cola principal | `notification.queue` |
+| Dead Letter Exchange / Queue | `notification.dlx` → `notification.dlq` |
+| Exchanges de eventos | `booking.events`, `payment.events` |
+
+**Resiliencia:** ACK automático, hasta **3 reintentos** con backoff exponencial (2 s → 10 s) y, al agotarlos, el mensaje va a la **DLQ**. Los *publisher confirms* y *returns* están activos.
+
+### Envelope de eventos de Kafka
+
+Todos los eventos comparten el contenedor `BusinessEvent`:
 
 ```json
-{"error":"algo salió mal"}
+{
+  "eventId": "uuid",
+  "eventType": "BookingCreated",
+  "aggregateId": "uuid",
+  "aggregateType": "Booking",
+  "occurredAt": "2030-10-10T15:00:00Z",
+  "correlationId": "uuid",
+  "version": 1,
+  "actorUserId": "uuid",
+  "actorUsername": "user@gmail.com",
+  "actorRole": "CUSTOMER",
+  "action": "CREATE",
+  "resource": "BOOKING",
+  "resourceId": "uuid",
+  "payload": { }
+}
 ```
 
-para todos los casos.
+Más detalle en [`docs/kafka.md`](docs/kafka.md) y [`docs/hu-12-notificaciones-rabbitmq.md`](docs/hu-12-notificaciones-rabbitmq.md).
 
 ---
 
-# 28. Migraciones
+##  Servicio de auditoría
 
-No uses en producción:
+Microservicio independiente (`audit-service/`) que consume el topic `booking-events` de Kafka y expone una API de consulta junto a un dashboard.
 
-```yaml
-hibernate:
-  ddl-auto: create
-```
+| Endpoint | Descripción |
+|---|---|
+| `GET /api/audit/events` | Últimos eventos registrados |
+| `GET /api/audit/events/{eventId}` | Detalle de un evento |
+| `GET /api/audit/stats` | Estadísticas agregadas |
 
-Este proyecto usa:
+**Dashboard (http://localhost:8090):** Angular 20 con Signals y Tailwind 4, sondeo cada 10 s, filtros por tipo/acción/rol/recurso, búsqueda por ID o usuario e inspección del payload JSON.
 
-```yaml
-hibernate:
-  ddl-auto: validate
-```
-
-más Flyway:
-
-```text
-backend/src/main/resources/db/migration/
-```
-
-Primera migración:
-
-```text
-V1__init.sql
-```
-
-Los cambios siguientes deberían ser:
-
-```text
-V2__add_provider_profile.sql
-V3__add_availability.sql
-V4__add_notifications.sql
-```
-
-No edites una migración que ya fue ejecutada en ambientes compartidos. Crea una nueva.
+Más información en [`docs/audit-service.md`](docs/audit-service.md).
 
 ---
 
-# 29. Git Flow sugerido para las células
+##  Inteligencia artificial
 
-```text
-main
-  |
-  +--- develop
-          |
-          +--- feature/auth
-          +--- feature/catalog
-          +--- feature/bookings
-          +--- feature/redis-cache
-          +--- feature/rabbit-events
-          +--- feature/ai
-```
+![IA](images/IA.png)
 
-Flujo:
+El asistente recomienda **hasta 3 servicios del catálogo activo** con puntaje y justificación. Todo el procesamiento ocurre en el backend: **la API key nunca llega al navegador**.
 
-```text
-feature/*
-   |
-Pull Request
-   |
-CI
-   |
-Code Review
-   |
-develop
-   |
-release
-   |
-main
-```
+### Entradas soportadas
 
-No permitir push directo a `main` durante el ejercicio.
+| Modalidad | Endpoint | Formatos | Límite |
+|----------|---|---|---|
+|  Texto  | `/api/ai/recommendations` | JSON | — |
+|  Voz   | `/api/ai/recommendations/voice` | WAV, MP3, M4A, MP4, WEBM | 10 MB |
+|  Imagen | `/api/ai/recommendations/image` | JPEG, PNG, WEBP | 5 MB |
+
+- Los archivos se procesan **en memoria** y no se almacenan.
+- La voz se transcribe antes de recomendar (Gemini por defecto; Groq opcional con `app.ai.audio-provider=groq`).
+- El resultado incluye `recommendationId`, `inputType`, explicación y la lista de recomendaciones.
+- Los identificadores inválidos que "alucine" el modelo se descartan.
+- Se publican los eventos `RecommendationRequested` y `RecommendationGenerated` con `Correlation ID`.
+
+### Privacidad
+
+El prompt solo contiene el objetivo del usuario y el catálogo público. No se envían correos, contraseñas ni tokens.
+
+### Proveedores
+
+La abstracción `AiRecommendationPort` permite cambiar de proveedor por configuración (`AI_PROVIDER`). Gemini es el proveedor activo por defecto; consulta [`docs/ADR-001-AI-PROVIDER-ABSTRACTION.md`](docs/ADR-001-AI-PROVIDER-ABSTRACTION.md) y [`docs/AI_PROVIDER_COMPARISON.md`](docs/AI_PROVIDER_COMPARISON.md) para la comparativa y las decisiones de diseño.
 
 ---
 
-# 30. Definition of Done sugerida
+##  Seguridad
 
-Una historia está terminada cuando:
+| Medida | Implementación |
+|---|---|
+| **Autenticación** | JWT firmado, entregado en cookie `HttpOnly` (también se acepta `Authorization: Bearer`) |
+| **Sesión** | API *stateless* (`SessionCreationPolicy.STATELESS`) |
+| **CSRF** | Token en cookie (`X-XSRF-TOKEN`); se exige solo en peticiones mutables autenticadas por cookie |
+| **Autorización** | RBAC (`CUSTOMER`, `PROVIDER`, `ADMIN`) con `@PreAuthorize` y políticas de dominio por recurso (propiedad de ofertas/reservas) |
+| **Contraseñas** | BCrypt |
+| **CORS** | Orígenes explícitos y configurables; credenciales habilitadas |
+| **Cuentas suspendidas** | No pueden iniciar sesión y su token deja de ser válido de inmediato |
+| **Idempotencia** | `Idempotency-Key` en reservas y pagos; índice único parcial en BD |
+| **Trazabilidad** | `X-Correlation-Id` en logs (MDC) y eventos Kafka |
+| **Datos sensibles** | Respuestas sin contraseña/hash; logs de auditoría sin correos, contraseñas ni JWT |
+| **Contenedores** | Imagen del backend con usuario no-root; cabeceras de seguridad en Nginx |
 
-- cumple criterios funcionales;
-- respeta dependencias de arquitectura;
-- tiene validaciones;
-- maneja errores;
-- incluye pruebas relevantes;
-- pasa CI;
-- no contiene secretos;
-- Swagger/OpenAPI refleja el contrato;
-- tiene logs útiles sin datos sensibles;
-- se puede ejecutar desde Docker;
-- está revisada por otro integrante de la célula.
+###  Checklist antes de publicar en producción
 
----
-
-# 31. Roadmap de evolución profesional
-
-## Nivel 1 — Starter actual
-
-```text
-Angular
-Spring Boot
-JWT
-PostgreSQL
-Redis
-RabbitMQ
-Gemini
-Docker
-Nginx
-CI
-Metrics
-```
-
-## Nivel 2
-
-Agregar:
-
-- CRUD de proveedores.
-- disponibilidad real;
-- estados de reserva;
-- roles;
-- invalidación de cache;
-- Testcontainers;
-- DLQ inspection/recovery;
-- notificaciones persistentes.
-
-## Nivel 3
-
-Agregar:
-
-- Transactional Outbox;
-- idempotency keys;
-- optimistic locking;
-- retry con backoff;
-- circuit breaker con Resilience4j;
-- tracing distribuido/OpenTelemetry;
-- structured logging;
-- SonarCloud;
-- OWASP dependency scanning.
-
-## Nivel 4
-
-Separar un bounded context:
-
-```text
-Modular Monolith
-      |
-      +--> Notification Service
-      |
-      +--> Recommendation Service
-```
-
-No conviertas todo a microservicios por moda. Divide únicamente cuando exista una razón de dominio, despliegue, escala o autonomía.
-
-## Nivel 5
-
-```text
-Container Registry
-        |
-        v
-Kubernetes
-        |
-        v
-Helm
-        |
-        +--> ConfigMap
-        +--> Secret
-        +--> Deployment
-        +--> Service
-        +--> Ingress
-        +--> HPA
-```
+- [ ] Cambiar `JWT_SECRET` por un valor aleatorio de 32+ caracteres.
+- [ ] **Eliminar o rotar los usuarios semilla** (`admin@gmail.com`, `provider@gmail.com`, `user@gmail.com`) y el administrador `admin` creado al arrancar (`AdminSeeder`).
+- [ ] Cambiar las credenciales de PostgreSQL, RabbitMQ (`guest/guest`) y Grafana (`admin/admin`).
+- [ ] Restringir `/actuator/prometheus` (hoy es público para facilitar el scraping local).
+- [ ] Revisar `JWT_COOKIE_SECURE` y `JWT_COOKIE_SAME_SITE` según el dominio y HTTPS.
+- [ ] Añadir autenticación al **audit-service** (su API no incluye Spring Security).
+- [ ] No versionar `.env` ni claves de proveedores; rotar cualquier clave que se haya compartido.
 
 ---
 
-# 32. Retos arquitectónicos para evaluación
-
-Las células deben poder responder:
-
-1. ¿Por qué Redis es un adaptador y no parte del dominio?
-2. ¿Qué pasa si Redis está caído?
-3. ¿Qué pasa si PostgreSQL guarda la reserva pero RabbitMQ falla?
-4. ¿Qué problema resuelve Outbox?
-5. ¿Por qué una DLQ es necesaria?
-6. ¿Cómo se evita procesar dos veces el mismo evento?
-7. ¿Por qué la API key de IA no puede estar en Angular?
-8. ¿Qué diferencia existe entre Dockerfile y Compose?
-9. ¿Por qué Nginx no necesita conocer PostgreSQL?
-10. ¿Qué dependencias podría reemplazar sin modificar el dominio?
-11. ¿Cuál información puede cachearse y cuál no?
-12. ¿Cómo invalidarían el catálogo cuando un proveedor modifica un servicio?
-13. ¿Cómo medirían que Redis realmente mejoró la latencia?
-14. ¿Cuándo separarían el consumer en otro servicio?
-15. ¿Qué implica que Render Free pueda dormirse?
-
----
-
-# 33. Comandos útiles
-
-Levantar:
+##  Observabilidad
 
 ```bash
-docker compose up --build -d
+docker compose --profile observability up --build -d
+# o
+make observability
 ```
 
-Estado:
+| Herramienta | URL | Credenciales |
+|---|---|---|
+| Prometheus | http://localhost:9090 | — |
+| Grafana | http://localhost:3000 | `admin` / `admin` |
 
-```bash
-docker compose ps
+Prometheus consulta `backend:8080/actuator/prometheus` cada 15 s. Métricas útiles:
+
+```text
+http_server_requests_seconds_count
+jvm_memory_used_bytes
+process_cpu_usage
 ```
 
-Logs backend:
+Endpoints de Actuator expuestos: `health`, `info`, `metrics`, `prometheus`. El `healthcheck` de Docker usa `/actuator/health/liveness`.
+
+---
+
+##  Pruebas
+
+### Backend
 
 ```bash
-docker compose logs -f backend
+cd backend
+mvn clean verify          # unitarias + integración + informe JaCoCo
+mvn test                  # solo unitarias (rápido, sin Docker para la mayoría)
 ```
 
-Logs RabbitMQ:
+- Informe de cobertura: `backend/target/site/jacoco/index.html`.
+- Las pruebas `*IT` (por ejemplo `NotificationFlowIT`, `BookingCancellationIT`) y varias de persistencia usan **Testcontainers** (PostgreSQL y RabbitMQ reales) y requieren **Docker en ejecución**. Se ejecutan con Failsafe durante `verify`.
+- Se incluyen pruebas de dominio, servicios, adaptadores, seguridad HTTP, filtros, validación de archivos multimedia, adaptadores de IA, pagos, notificaciones y políticas de acceso.
+
+### Frontend
 
 ```bash
-docker compose logs -f rabbitmq
+cd frontend
+npm ci
+npm test -- --watch=false --browsers=ChromeHeadless
 ```
 
-Entrar a PostgreSQL:
+### Smoke y E2E
 
 ```bash
-docker compose exec postgres psql -U skillbridge -d skillbridge
-```
-
-Entrar a Redis:
-
-```bash
-docker compose exec redis redis-cli
-```
-
-Recrear únicamente backend:
-
-```bash
-docker compose up -d --build backend
-```
-
-Detener:
-
-```bash
-docker compose down
-```
-
-Eliminar también datos locales:
-
-```bash
-docker compose down -v
-```
-
-Observabilidad:
-
-```bash
-docker compose --profile observability up -d
+./scripts/smoke-test.sh http://localhost:8080      # health + catálogo
+# Windows (PowerShell):
+./scripts/e2e-offerings.ps1
+./scripts/e2e-admin-users.ps1
 ```
 
 ---
 
-# 34. Troubleshooting
+##  CI/CD
 
-## `port is already allocated`
+El workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) se ejecuta en cada *push* y *pull request* hacia `main` y `develop`:
 
-Busca el proceso que usa el puerto o modifica el puerto del host en `docker-compose.yml`.
+| Job | Acciones |
+|---|---|
+| **backend** | Java 21 (Temurin) → `mvn clean verify` |
+| **frontend** | Node 22 → `npm ci` → tests (ChromeHeadless) → `npm run build` |
+| **docker** | Construye las imágenes de backend y frontend (sin publicar) |
 
-Ejemplo:
+Adicionalmente hay un workflow de **Qodana** para calidad de código. Consulta [`docs/CI-CD.md`](docs/CI-CD.md) para las políticas de protección de ramas.
 
-```yaml
-ports:
-  - "8089:80"
-```
-
-## Backend no conecta a PostgreSQL
-
-Dentro de Docker **no uses**:
-
-```text
-localhost:5432
-```
-
-El hostname es el nombre del servicio:
-
-```text
-postgres:5432
-```
-
-## Backend no conecta a Redis
-
-Docker:
-
-```text
-redis://redis:6379
-```
-
-Cloud normalmente:
-
-```text
-rediss://...
-```
-
-## RabbitMQ no conecta
-
-Local:
-
-```text
-amqp://guest:guest@rabbitmq:5672
-```
-
-Cloud:
-
-```text
-amqps://...
-```
-
-## IA responde que no existe API key
-
-Configura:
-
-```env
-GEMINI_API_KEY=...
-```
-
-y reconstruye/reinicia backend.
-
-## Angular funciona pero API da CORS
-
-En backend revisa:
-
-```env
-CORS_ALLOWED_ORIGINS=https://tu-frontend.vercel.app
-```
-
-No uses `*` con credenciales como solución permanente.
-
-## Render tarda al abrir
-
-En plan gratuito puede existir cold start después de inactividad.
+**Flujo de ramas sugerido:** `feature/*` → Pull Request → CI + revisión → `develop` → `main`.
 
 ---
 
-# 35. Qué NO hacer
+##  Despliegue
 
-No subir:
+El proyecto está pensado para dos topologías:
 
-```text
-.env
-passwords
-tokens
-API keys
-connection strings privadas
-```
+### A. Contenedores (Docker Compose / cualquier plataforma de contenedores)
 
-No poner en Angular:
+`docker compose up --build -d` levanta el stack completo con Nginx sirviendo Angular y haciendo de *reverse proxy* de `/api`.
 
-```text
-JWT_SECRET
-DATABASE_PASSWORD
-REDIS_URL
-RABBITMQ_URL
-GEMINI_API_KEY
-```
+### B. Cloud gratuito para demos
 
-En un producto real, restringe `/actuator/prometheus` a una red privada o autenticación; en este starter se deja accesible para que Prometheus local pueda hacer scraping.
+| Componente | Servicio sugerido |
+|---|---|
+| Frontend Angular | Vercel (`frontend/vercel.json`, variable `API_URL`) |
+| Backend Spring Boot | Render (Docker, *Root Directory* `backend`) |
+| PostgreSQL | Neon |
+| Redis | Upstash |
+| RabbitMQ | CloudAMQP |
+| IA | Gemini Developer API |
 
-No usar Docker Compose como excusa para meter todas las credenciales directamente en YAML.
+Pasos esenciales:
 
-No crear microservicios sin una razón.
+1. **Backend (Render):** define `DATABASE_URL`, `DATABASE_USER`, `DATABASE_PASSWORD`, `REDIS_URL`, `RABBITMQ_URL`, `KAFKA_BOOTSTRAP_SERVERS`, `JWT_SECRET`, `GEMINI_API_KEY`, `CORS_ALLOWED_ORIGINS` y configura el health check en `/actuator/health/liveness`.
+2. **Frontend (Vercel):** *Root Directory* `frontend` y variable `API_URL=https://<tu-backend>/api`.
+3. **CORS:** añade el dominio del frontend a `CORS_ALLOWED_ORIGINS`.
 
-No usar Redis como base de datos principal para información transaccional de este caso de uso.
-
-No llamar a Gemini directamente desde Angular con una key privada.
+> El backend requiere un broker **Kafka** accesible. En el modelo cloud gratuito debes aprovisionar uno gestionado (o desactivar/ajustar esa integración) además de los demás servicios.
+>
+> Los planes gratuitos cambian con el tiempo y los servicios en suspensión sufren *cold starts*; verifica siempre las condiciones vigentes. Consulta [`docs/DEPLOYMENT-CHECKLIST.md`](docs/DEPLOYMENT-CHECKLIST.md).
 
 ---
 
-# 36. Servicios gratuitos: referencia al 29-09-2026
+##  Desarrollo local sin Docker
 
-Este proyecto fue preparado pensando en opciones disponibles para formación en septiembre de 2026:
-
-- Render dispone de Web Services gratuitos para pruebas/hobby, con suspensión por inactividad y límites mensuales.
-- Vercel mantiene plan Hobby gratuito para proyectos personales.
-- Neon mantiene Postgres Free.
-- Upstash ofrece Redis Free.
-- CloudAMQP ofrece un plan RabbitMQ gratuito de desarrollo.
-- Gemini Developer API dispone de nivel gratuito para modelos elegibles.
-
-Verifica siempre condiciones y cuotas actuales antes de iniciar una nueva cohorte:
-
-- https://render.com/docs/free
-- https://vercel.com/pricing
-- https://neon.com/pricing
-- https://upstash.com/pricing/redis
-- https://www.cloudamqp.com/plans.html
-- https://ai.google.dev/gemini-api/docs/pricing
-
----
-
-# 37. Archivos complementarios
-
-Lee también:
-
-```text
-docs/ARCHITECTURE.md
-docs/BACKLOG.md
-docs/DEPLOYMENT-CHECKLIST.md
-docs/INSTRUCTOR-GUIDE.md
-```
-
-`BACKLOG.md` está pensado para trabajar el proyecto por sprints/células.
-
----
-
-# 38. Objetivo final para las células
-
-El proyecto debe llegar a un estado donde un evaluador pueda:
+Útil para depurar. Necesitas **JDK 21**, **Maven 3.9+**, **Node 22** y las dependencias (PostgreSQL, Redis, RabbitMQ y Kafka) en ejecución — puedes levantarlas solo con Compose:
 
 ```bash
-git clone <repo>
-cd <repo>
-cp .env.example .env
-docker compose up --build
+docker compose up -d postgres redis rabbitmq kafka mailpit
 ```
 
-y tener un entorno funcional sin instalar manualmente PostgreSQL, Redis o RabbitMQ.
+Como PostgreSQL se publica en el puerto `5433` del host:
 
-Además debe existir:
+```bash
+# Backend
+cd backend
+export DATABASE_URL=jdbc:postgresql://localhost:5433/skillbridge
+export DATABASE_USER=skillbridge DATABASE_PASSWORD=skillbridge_dev
+export JWT_COOKIE_SECURE=false JWT_COOKIE_SAME_SITE=Lax
+mvn spring-boot:run
 
-- URL pública del frontend;
-- URL pública del backend;
-- base de datos cloud;
-- Redis cloud;
-- RabbitMQ cloud;
-- integración de IA;
-- CI verde;
-- README actualizado;
-- diagrama de arquitectura;
-- evidencia de pruebas;
-- explicación de decisiones técnicas.
+# Frontend (en otra terminal; proxy de /api hacia :8080)
+cd frontend
+npm install
+npm start          # http://localhost:4200
+```
 
-La evaluación no debería limitarse a "funciona". La célula debe poder **explicar por qué está diseñada de esa manera, qué trade-offs tomó y cómo evolucionaría la solución para producción real**.
+> Con HTTP plano en local, desactiva `JWT_COOKIE_SECURE`; de lo contrario el navegador descartará la cookie de sesión.
+
+### Comandos útiles (Makefile)
+
+| Comando | Acción |
+|---|---|
+| `make up` | Construye y levanta el stack en segundo plano |
+| `make down` | Detiene los contenedores |
+| `make logs` | Sigue los logs |
+| `make ps` | Estado de los servicios |
+| `make observability` | Levanta con Prometheus y Grafana |
+| `make build` | Construye las imágenes |
+
+Otros comandos frecuentes:
+
+```bash
+docker compose logs -f backend                                   # logs del backend
+docker compose exec postgres psql -U skillbridge -d skillbridge  # consola SQL
+docker compose exec redis redis-cli                              # consola Redis
+docker compose up -d --build backend                             # recrear solo el backend
+docker compose down -v                                           # detener y borrar datos
+```
 
 ---
 
-## Licencia de uso educativo
+##     Solución de problemas
 
-Este starter puede ser adaptado libremente como material de formación. Las credenciales de proveedores externos y los límites de sus planes son responsabilidad de cada equipo.
-# SkillBridge-AI-JAVA-Angular
-# SkillBridge-AI-JAVA-Angular
+| Síntoma | Causa probable y solución |
+|---|---|
+| `port is already allocated` | Otro proceso usa el puerto. Libéralo o cambia el mapeo en `docker-compose.yml`. |
+| El backend no arranca / espera | Depende de PostgreSQL, Redis, RabbitMQ y Kafka *healthy*. Revisa `docker compose ps` y los logs. |
+| Dentro de Docker no conecta a servicios | Usa los nombres de servicio (`postgres:5432`, `redis:6379`, `rabbitmq:5672`, `kafka:29092`), no `localhost`. |
+| La IA responde que falta la API key | Define `GEMINI_API_KEY` en `.env` y reinicia: `docker compose up -d --build backend`. |
+| Error de CORS en el navegador | Añade el origen exacto a `CORS_ALLOWED_ORIGINS`. No uses `*` con credenciales. |
+| Sesión que no se mantiene en local | La cookie es `Secure`; en HTTP define `JWT_COOKIE_SECURE=false` (y `JWT_COOKIE_SAME_SITE=Lax`). |
+| `POST` devuelve `403` por CSRF | Envía la cabecera `X-XSRF-TOKEN` con el valor de la cookie `XSRF-TOKEN` (el frontend lo hace automáticamente). |
+| Testcontainers falla (`client version … too old`) | Actualiza Docker / Testcontainers (el proyecto usa `1.21.4`) y comprueba que el usuario tenga acceso a Docker. |
+| Los correos no aparecen | Define `NOTIFICATIONS_SENDER=email` y revisa Mailpit en http://localhost:8025. |
 
-### Recomendaciones multimodales
+---
 
-El asistente acepta texto, archivos de voz e imágenes en `/api/ai/recommendations`. Todo el procesamiento Gemini ocurre en Spring Boot; el frontend no contiene API keys. Configura `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_MEDIA_MAX_AUDIO_BYTES` y `AI_MEDIA_MAX_IMAGE_BYTES` en el entorno del backend.
+##  Limitaciones conocidas y roadmap
+
+### Limitaciones actuales (transparencia técnica)
+
+- **Sin Transactional Outbox:** si RabbitMQ o Kafka fallan tras confirmar la transacción en PostgreSQL, el evento puede perderse. Es un riesgo asumido y documentado.
+- **DLQ sin reproceso automático:** los mensajes fallidos se inspeccionan manualmente.
+- **Pagos simulados:** la pasarela es determinista y el repositorio de resultados de pago es **en memoria**.
+- **Audit-service en memoria:** conserva solo los últimos 500 eventos y se reinicia con el servicio; su API no tiene autenticación en el backend.
+- **Pruebas de integración con Docker:** requieren Docker disponible para ejecutarse.
+
+### Próximos pasos sugeridos
+
+- [ ] Implementar **Transactional Outbox** y consumidores idempotentes.
+- [ ] Persistir el servicio de auditoría (PostgreSQL / almacenamiento durable) y asegurar su API.
+- [ ] Integrar una pasarela de pago real y persistir sus resultados.
+- [ ] Disponibilidad y calendario de proveedores.
+- [ ] Circuit breaker y *retry* con Resilience4j para proveedores de IA.
+- [ ] Trazado distribuido con OpenTelemetry y *structured logging*.
+- [ ] Rate limiting y protección contra fuerza bruta en el login.
+- [ ] Despliegue en Kubernetes (Helm, HPA, Ingress).
+
+---
+
+##  Documentación adicional
+
+| Documento | Contenido |
+|---|---|
+| [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | Estilo arquitectónico y razones de cada tecnología |
+| [`docs/API.md`](docs/API.md) | Referencia de endpoints |
+| [`docs/kafka.md`](docs/kafka.md) | Integración con Kafka y catálogo de eventos |
+| [`docs/audit-service.md`](docs/audit-service.md) | Microservicio de auditoría |
+| [`docs/hu-12-notificaciones-rabbitmq.md`](docs/hu-12-notificaciones-rabbitmq.md) | Notificaciones asíncronas, retry y DLQ |
+| [`docs/hu-17-idempotencia-correlation-id.md`](docs/hu-17-idempotencia-correlation-id.md) | Idempotencia y Correlation ID |
+| [`docs/hu-23-recomendaciones-multimodales.md`](docs/hu-23-recomendaciones-multimodales.md) | Recomendaciones por texto, voz e imagen |
+| [`docs/cancelacion-reserva-propia-backend.md`](docs/cancelacion-reserva-propia-backend.md) | Cancelación de reservas y concurrencia |
+| [`docs/ADR-001-AI-PROVIDER-ABSTRACTION.md`](docs/ADR-001-AI-PROVIDER-ABSTRACTION.md) | Decisión de abstracción de proveedores de IA |
+| [`docs/adr/`](docs/adr) | Registros de decisiones arquitectónicas (monolito modular, servicios gestionados) |
+| [`docs/CI-CD.md`](docs/CI-CD.md) | Pipeline y protección de ramas |
+| [`docs/DEPLOYMENT-CHECKLIST.md`](docs/DEPLOYMENT-CHECKLIST.md) | Lista de verificación de despliegue |
+| [`docs/BACKLOG.md`](docs/BACKLOG.md) | Historias de usuario y backlog |
+
+---
+
+##  Contribución
+
+1. Crea una rama desde `develop`: `feature/<nombre>`.
+2. Respeta la regla de dependencias de la arquitectura hexagonal (el dominio y la aplicación no importan infraestructura).
+3. Incluye pruebas relevantes y no subas secretos.
+4. Abre un Pull Request usando la [plantilla](.github/PULL_REQUEST_TEMPLATE.md) y espera a que el CI esté en verde.
+
+**Definición de terminado:** criterios funcionales cumplidos, validaciones y manejo de errores, pruebas, CI en verde, OpenAPI actualizado, logs útiles sin datos sensibles y revisión por otro integrante.
+
+---
+
+##  Licencia
+
+Distribuido bajo la licencia **MIT**. Consulta el archivo [`LICENSE`](LICENSE) para más información.
+
+<div align="center">
+
+Hecho con Java, Angular y mucha mensajería asíncrona.
+
+</div>
+
+
+
