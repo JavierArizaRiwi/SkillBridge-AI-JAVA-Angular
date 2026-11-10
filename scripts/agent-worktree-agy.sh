@@ -145,6 +145,16 @@ meta_get() { sed -n "s/^${2}=//p" "$1" 2>/dev/null | head -n 1; }
 # ----------------------------------------------------------------------------- git helpers
 git_toplevel() { git rev-parse --show-toplevel 2>/dev/null; }
 
+# realpath that returns ONE path form. On Windows/Git Bash, `git rev-parse --show-toplevel` yields
+# "C:/Users/..." while `realpath` of a Git-Bash-style path yields "/tmp/..." or "/c/Users/...". Comparing
+# those by prefix silently defeats the "root must be outside the repository" guard, so every path that is
+# compared is normalized to the mixed form ("C:/...") when cygpath exists. Elsewhere it is plain realpath.
+realpath_n() {
+  local out
+  out=$(realpath "$@") || return
+  if command -v cygpath >/dev/null 2>&1; then cygpath -m -- "$out"; else printf '%s\n' "$out"; fi
+}
+
 default_root() {
   local top=$1
   printf '%s/%s-agent-worktrees' "$(dirname "$top")" "$(basename "$top")"
@@ -354,13 +364,13 @@ cmd_run() {
 
   local top
   top=$(git_toplevel) || die "$EX_PRECONDITION" "not inside a Git repository"
-  top=$(realpath -- "$top")
+  top=$(realpath_n -- "$top")
   if [[ $(git -C "$top" rev-parse --absolute-git-dir) != $(git -C "$top" rev-parse --path-format=absolute --git-common-dir) ]]; then
     die "$EX_PRECONDITION" "run from the original workspace, not from a linked worktree ($top)"
   fi
 
   [[ -n $root ]] || root=$(default_root "$top")
-  root=$(realpath -m -- "$root")
+  root=$(realpath_n -m -- "$root")
   case "$root/" in
     "$top"/*) die "$EX_PRECONDITION" "--worktrees-root ($root) must be outside the repository ($top)" ;;
   esac
@@ -461,7 +471,11 @@ cmd_run() {
 
   # --- create run folder + worktree (git refuses to overwrite; no force)
   mkdir -p -- "$root"
-  mkdir -m 700 -- "$run_dir"
+  # `mkdir -m` fails after creating the directory on Windows/Git Bash (NTFS ignores POSIX modes), which
+  # aborted the run under `set -e`. Create first (still refuses an existing dir), then tighten the mode
+  # where the filesystem supports it.
+  mkdir -- "$run_dir"
+  chmod 700 -- "$run_dir" 2>/dev/null || true
   local meta="$run_dir/meta.env"
   : >"$meta"
   meta_set "$meta" SCHEMA "$SCHEMA"
@@ -650,9 +664,9 @@ load_run() {
   valid_run_id "$run_id" || die "$EX_USAGE" "invalid --run-id '$run_id'"
   command -v git >/dev/null 2>&1 || die "$EX_PRECONDITION" "git not found"
   LR_TOP=$(git_toplevel) || die "$EX_PRECONDITION" "not inside a Git repository"
-  LR_TOP=$(realpath -- "$LR_TOP")
+  LR_TOP=$(realpath_n -- "$LR_TOP")
   [[ -n $root ]] || root=$(default_root "$LR_TOP")
-  LR_ROOT=$(realpath -m -- "$root")
+  LR_ROOT=$(realpath_n -m -- "$root")
   case "$LR_ROOT/" in
     "$LR_TOP"/*) die "$EX_CLEANUP_REFUSED" "--worktrees-root ($LR_ROOT) is inside the repository ($LR_TOP); refusing" ;;
   esac
@@ -705,7 +719,7 @@ cmd_cleanup() {
 
   # 2. never the original workspace
   local real_wt
-  real_wt=$(realpath -m -- "$wt")
+  real_wt=$(realpath_n -m -- "$wt")
   [[ $real_wt != "$LR_TOP" ]] || refuse "target is the original workspace"
 
   # 3. must be registered by git, as a non-main worktree on the expected branch
@@ -719,11 +733,11 @@ cmd_cleanup() {
         cur_branch=${line#branch }
         [[ $cur_branch == "refs/heads/$branch" ]] && uses=$((uses + 1)) ;;
       "")
-        if [[ -n $cur && $(realpath -m -- "$cur") == "$real_wt" ]]; then registered=1; reg_branch=$cur_branch; fi ;;
+        if [[ -n $cur && $(realpath_n -m -- "$cur") == "$real_wt" ]]; then registered=1; reg_branch=$cur_branch; fi ;;
     esac
   done < <(git -C "$LR_TOP" worktree list --porcelain; echo)
   ((registered)) || refuse "path is not a registered worktree in 'git worktree list' (already removed? run 'git worktree prune' yourself if so)"
-  [[ $(realpath -m -- "$main_wt") != "$real_wt" ]] || refuse "target is the main worktree"
+  [[ $(realpath_n -m -- "$main_wt") != "$real_wt" ]] || refuse "target is the main worktree"
   [[ $reg_branch == "refs/heads/$branch" ]] || refuse "worktree is on '$reg_branch', expected refs/heads/$branch"
   ((uses == 1)) || refuse "branch $branch is used by $uses worktrees"
   [[ -d $wt ]] || refuse "worktree directory is missing"
