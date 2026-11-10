@@ -12,8 +12,10 @@ on:
   pull_request_review_comment:
     types: [created]
 
+# El grupo incluye el tipo de evento: los comentarios que crea la propia action
+# (issue_comment) no deben cancelar la revisión en curso (pull_request).
 concurrency:
-  group: claude-${{ github.event.pull_request.number || github.event.issue.number }}
+  group: claude-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}
   cancel-in-progress: true
 
 jobs:
