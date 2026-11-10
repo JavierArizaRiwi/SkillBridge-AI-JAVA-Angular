@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed (requiere aprobación humana). Modifica la decisión de recuperación de la spec `specs/026-rag-knowledge` (HU-26, issue #77): sustituye «solo BM25 léxico en memoria, sin embeddings ni base vectorial» por «recuperación con embeddings y almacén vectorial, con BM25 como referencia».
+Proposed (requiere aprobación humana). Modifica la decisión de recuperación de la spec `specs/026-rag-knowledge` (HU-26, issue #77): sustituye «solo BM25 léxico en memoria, sin embeddings ni base vectorial» por «recuperación únicamente con embeddings y almacén vectorial». **El propietario decidió no conservar BM25** (2026-11-09).
 
 ## Date
 
@@ -20,20 +20,16 @@ La spec original de HU-26 fijó BM25 léxico en memoria y dejó los embeddings y
 
 ## Decision
 
-La recuperación se hace detrás del puerto `KnowledgeSearchPort` con **dos adaptadores intercambiables**, seleccionables por configuración:
+La recuperación usa **solo embeddings y un almacén vectorial**, detrás del puerto `KnowledgeSearchPort` (que sigue permitiendo cambiar el adaptador en el futuro). **No se conserva BM25**: ni como referencia, ni como respaldo, ni en búsqueda híbrida.
 
-1. **`bm25`**: BM25 léxico en memoria. Determinista, sin red. Se conserva como **referencia** (línea base de medición) y como respaldo.
-2. **`vector`**: la consulta y los fragmentos se convierten en vectores con un modelo de embeddings **multilingüe**, se guardan en un **almacén vectorial** y se busca por similitud coseno.
-3. **`hybrid`**: ejecuta ambos y fusiona los rankings.
-
-Detalles:
-
-- **Almacén vectorial:** pgvector en la PostgreSQL existente *(recomendado; ver «Decisiones pendientes»)*, a través de la abstracción `VectorStore` de Spring AI.
-- **Embeddings como capacidad de IA:** pasa a ser una capacidad más de la cadena de fallback (`embedding`, ADR-0007) con su puerto de salida. El proveedor y el modelo se eligen en el plan, tras verificar disponibilidad y soporte multilingüe.
-- **Rechazo temprano:** si ningún fragmento supera el umbral de similitud de la estrategia activa, se responde «sin información» **sin invocar al LLM generativo** (se mantiene FR-006). Calcular el embedding de la consulta no es una invocación al LLM generativo, pero sí una dependencia externa salvo que el modelo sea local.
-- **Degradación:** si el servicio de embeddings falla, `hybrid` responde solo con BM25; `vector` devuelve 503. **Nunca** respuestas simuladas.
-- **Sincronización del índice:** al invalidarse la caché de ofertas se recalculan **solo los embeddings de los fragmentos cambiados**; la carga inicial al arrancar es por lotes.
-- **Medición obligatoria:** un conjunto de evaluación versionado de preguntas en español e inglés, con respuestas esperadas y casos sin respuesta, mide `hit@k` y `MRR` por estrategia. Decide cuál es la estrategia por defecto. No decide si se aprende la técnica: eso ya está decidido.
+- La consulta y los fragmentos se convierten en vectores con un modelo de embeddings **multilingüe** y se buscan por similitud coseno.
+- **Almacén vectorial:** pgvector en la PostgreSQL existente (recomendado; ver «Decisiones pendientes»), a través de `VectorStore` de Spring AI.
+- **Proveedor de embeddings (decidido el 2026-11-09): Gemini**, a través de la integración de Spring AI y la clave `GEMINI_API_KEY` que el proyecto ya usa, sin añadir un proveedor nuevo; OpenAI (cuyo starter ya está en `pom.xml`) queda como segundo candidato de la cadena de fallback. **Se verifica en el plan** (no se asume): modelo exacto, dimensión del vector, artefacto de Spring AI para embeddings en la versión 1.1.8, soporte de español e inglés y cuota.
+- **Embeddings como capacidad de IA:** pasa a ser una capacidad más de la cadena de fallback (`embedding`, ADR-0007) con su puerto de salida.
+- **Rechazo temprano:** si ningún fragmento supera el umbral de similitud, se responde «sin información» **sin invocar al LLM generativo** (se mantiene FR-006). Calcular el embedding de la consulta no es una invocación al LLM generativo, pero sí una dependencia externa.
+- **Sin respaldo léxico:** si el servicio de embeddings falla, la respuesta es **503**. Nunca respuestas simuladas.
+- **Sincronización:** al invalidarse la caché de ofertas se recalculan **solo los embeddings de los fragmentos cambiados**; la carga inicial al arrancar es por lotes.
+- **Medición obligatoria:** un conjunto de evaluación versionado de preguntas en español e inglés, con fragmentos esperados y casos sin respuesta, mide `hit@k`, `MRR` y falsos positivos. Sirve para calibrar el umbral y comparar modelos; ya no hay una línea base BM25 con la que contrastar.
 
 ## Diferencias entre BM25 y embeddings
 
@@ -57,10 +53,10 @@ La explicación didáctica, con ejemplos del proyecto, está en [`docs/guides/ra
 
 ## Alternatives considered
 
-- **Solo BM25 (decisión original).** Suficiente para el volumen, pero no cruza idiomas y no permite practicar embeddings y vector stores. Se conserva como adaptador de referencia.
-- **Solo vectores, sin BM25.** Más simple en código, pero pierde la línea base, la búsqueda exacta de nombres y el respaldo cuando falla el servicio de embeddings.
-- **Base vectorial dedicada (Qdrant, Milvus…).** La que más se parece a «practicar una base vectorial», pero añade un servicio que desplegar y alojar. Se descarta por ahora; el puerto permite añadirla después.
-- **`VectorStore` en memoria de Spring AI.** Practica embeddings sin base de datos. Sirve como escalón previo o para pruebas, pero no persiste los vectores entre arranques.
+- **Solo BM25 (decisión original).** Suficiente para el volumen, pero no cruza idiomas y no permite practicar embeddings y vector stores.
+- **BM25 como referencia y/o búsqueda híbrida.** Era la recomendación inicial: da una línea base determinista, búsqueda exacta de nombres y respaldo si falla el servicio de embeddings. **Descartada por el propietario** el 2026-11-09 para priorizar la técnica y reducir el código a mantener. El coste está en las consecuencias.
+- **Base vectorial dedicada (Qdrant, Milvus…).** Añade un servicio que desplegar y alojar. Se descarta por ahora; el puerto permite añadirla después.
+- **`VectorStore` en memoria de Spring AI.** Practica embeddings sin base de datos, pero no persiste los vectores entre arranques. Útil para pruebas.
 
 ## Consequences
 
@@ -74,14 +70,15 @@ La explicación didáctica, con ejemplos del proyecto, está en [`docs/guides/ra
 - **Migración:** la spec original prohibía migraciones; ahora se permiten **solo** para el almacén vectorial. La numeración se coordina con HU-22, que añade la suya.
 - **Latencia y coste:** SC-002 («menos de 50 ms y 0 llamadas externas sin contexto») solo se mantiene con la estrategia `bm25`; con embeddings remotos depende del proveedor y se mide y se reporta.
 - **Más superficie de fallo:** un servicio más en la cadena de fallback y un umbral de similitud que calibrar.
+- **Sin respaldo ni línea base léxica:** si el servicio de embeddings cae, el asistente responde 503 (con BM25 habría seguido funcionando). Y no hay referencia determinista con la que comprobar que los embeddings mejoran algo; el conjunto de evaluación mide la calidad absoluta, no la comparada.
+- **Pierden efecto «sin llamadas externas en menos de 50 ms»** (SC-002): cada consulta depende del proveedor de embeddings.
 - **Cambiar de modelo de embeddings obliga a recalcular todos los vectores** (las dimensiones y el espacio cambian).
 - Los textos que se envían al proveedor de embeddings son **solo públicos** (ofertas, categorías, políticas); no se envían datos de usuarios.
 
 ## Decisiones pendientes (se aplica la recomendada hasta que se indique otra cosa)
 
-1. **Almacén vectorial:** pgvector en la PostgreSQL existente (recomendado) / base vectorial dedicada / `VectorStore` en memoria.
-2. **BM25:** conservarlo como referencia y para `hybrid` (recomendado) / sustituirlo.
-3. **Proveedor y modelo de embeddings:** se decide en el plan, verificando disponibilidad, soporte de español e inglés, coste y cuota.
+1. **Almacén vectorial:** pgvector en la PostgreSQL existente, que corre en **Railway** (recomendado) / base vectorial dedicada / `VectorStore` en memoria. Hay que **verificar que la PostgreSQL de Railway ofrece la extensión** pgvector antes de implementar.
+2. **Detalles del proveedor de embeddings** (modelo, dimensión, artefacto de Spring AI, idiomas, cuota): se verifican en el plan.
 
 ## Out of scope
 

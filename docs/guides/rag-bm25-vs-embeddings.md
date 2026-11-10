@@ -75,11 +75,9 @@ pgvector es una extensión de PostgreSQL que añade el tipo vector y estos índi
 
 Ninguno es «mejor». **Se complementan**.
 
-## 6. Búsqueda híbrida
+## 6. Búsqueda híbrida (no se usa en SkillBridge)
 
-Se ejecutan las dos y se **fusionan los rankings**. La técnica más usada es *Reciprocal Rank Fusion* (RRF): cada fragmento suma `1 / (c + posición)` por cada ranking en el que aparece (con `c` una constante; 60 es un valor habitual). Un fragmento bien colocado en ambos sube; uno que solo gana por casualidad en uno, no.
-
-Lo que consigue: BM25 aporta la precisión con términos exactos y los embeddings, la flexibilidad con paráfrasis e idiomas.
+Combinar las dos técnicas fusionando rankings (por ejemplo con *Reciprocal Rank Fusion*, que suma `1 / (c + posición)` por cada ranking en que aparece un fragmento) suele dar lo mejor de ambas. **En este proyecto se decidió usar solo embeddings** (ADR-0008); se explica aquí como contexto de la técnica.
 
 ## 7. Cómo saber cuál funciona mejor: evaluar
 
@@ -107,7 +105,7 @@ Resultado esperado a comprobar: los embeddings ganan en inglés sobre ofertas en
 
 ## 9. Para practicar en el proyecto
 
-1. Entregar primero el adaptador **BM25** y el conjunto de evaluación: es la línea base.
-2. Añadir el adaptador **vectorial** y comparar con el mismo conjunto.
-3. Probar **híbrido** y quedarse con la estrategia que mejor puntúe.
-4. Experimentar: cambiar el umbral, el `topK`, el modelo; ver el efecto en hit@k y en los falsos positivos.
+1. Construir el conjunto de evaluación en español e inglés, incluidas preguntas sin respuesta.
+2. Implementar el adaptador vectorial y medir `hit@k`, `MRR` y falsos positivos.
+3. Experimentar: cambiar el umbral, el `topK` y el modelo de embeddings, y ver el efecto en las métricas.
+4. Si algún día quieres comparar con una línea base léxica, el puerto `KnowledgeSearchPort` permite añadir un adaptador BM25 sin tocar el resto.
