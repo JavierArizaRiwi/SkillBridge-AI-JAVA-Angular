@@ -22,7 +22,7 @@ Proposed (requiere aprobación humana). Sustituye parcialmente a [ADR-001](ADR-0
 
 Cada puerto de salida de IA tendrá un **adaptador compuesto** que ejecuta una **cadena ordenada** de candidatos (`proveedor:modelo`) y es el bean inyectado en la aplicación.
 
-1. **Un compuesto por puerto.** `AiRecommendationPort`, `VisionPort`, `SpeechToTextPort` y `TextToSpeechPort`; el RAG (HU-26) tiene su propia capacidad `rag` con su propia cadena (spec 028). Los servicios de aplicación no cambian de firma ni conocen la cadena.
+1. **Un compuesto por puerto.** `AiRecommendationPort`, `VisionPort`, `SpeechToTextPort` y `TextToSpeechPort`; el RAG (HU-26) tiene su propia capacidad `rag` con su propia cadena (spec 028), y los embeddings del almacén vectorial son otra capacidad, `embedding` ([ADR-0008](0008-rag-retrieval-embeddings-and-vector-store.md)). Los servicios de aplicación no cambian de firma ni conocen la cadena.
 2. **Cadena ordenada.** Puede mezclar modelos del mismo proveedor y de proveedores distintos. Se ejecuta en orden empezando por el primario.
 3. **Conmutación solo ante errores recuperables:** timeout, cuota agotada (HTTP 429), errores 5xx y fallos de red. **Nunca** ante errores no recuperables (entrada inválida del cliente, 4xx por parámetros, reglas de negocio): se propagan sin probar otro modelo.
 4. **Clasificación por tipo, no por texto.** Se decide por tipo de excepción y código HTTP; queda prohibido deducir el error buscando subcadenas en el mensaje.

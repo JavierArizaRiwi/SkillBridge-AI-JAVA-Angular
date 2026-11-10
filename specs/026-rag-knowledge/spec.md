@@ -31,7 +31,7 @@ Como administrador y cliente de la plataforma, quiero que el sistema detecte inm
 **Independent Test**: Configurar un doble o espía del puerto LLM. Enviar una pregunta totalmente ajena al dominio de SkillBridge (ej. `"¿Cómo reparar la transmisión de un vehículo diésel?"`). Verificar que la respuesta es HTTP 200 OK con `hasSufficientContext: false`, un mensaje determinista indicando falta de información, lista `sources: []`, y comprobar que el LLM no fue invocado en ningún momento.
 
 **Acceptance Scenarios**:
-1. **Given** una pregunta que no guarda relación temática con el catálogo ni con las políticas de SkillBridge, **When** el motor de búsqueda léxica evalúa la consulta y ningún fragmento supera el umbral mínimo de similitud, **Then** el sistema devuelve deterministamente `hasSufficientContext: false`, un mensaje indicando que no dispone de información suficiente, `sources` vacía, y no realiza ninguna llamada al modelo de lenguaje.
+1. **Given** una pregunta que no guarda relación temática con el catálogo ni con las políticas de SkillBridge, **When** el motor de recuperación (`KnowledgeSearchPort`) evalúa la consulta y ningún fragmento supera el umbral mínimo de similitud, **Then** el sistema devuelve deterministamente `hasSufficientContext: false`, un mensaje indicando que no dispone de información suficiente, `sources` vacía, y no realiza ninguna llamada al modelo de lenguaje.
 2. **Given** una búsqueda con coincidencia de palabras clave marginales cuyo puntaje compuesto queda por debajo del umbral mínimo configurable (`threshold`), **When** se procesa la consulta, **Then** el sistema aborta el ciclo de generación y responde deterministamente sin consumir tokens del proveedor externo.
 
 ---
@@ -74,7 +74,7 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 - **Intento de extracción de datos privados o internos**: Si el usuario formula preguntas orientadas a consultar información privada (datos de pagos, reservas de otros clientes, emails privados o documentos técnicos de auditoría/seguridad), el índice de conocimiento jamás contendrá dichos datos, resultando en `hasSufficientContext: false` y respuesta de "sin información" sin fugas de datos.
 - **Alucinación de identificadores de fuentes por el LLM**: Si el LLM menciona en su texto un identificador de fuente que no formaba parte de los fragmentos inyectados en el contexto, el componente de validación de fuentes DEBE descartar dicha referencia y no incluirla en la lista final de `sources`.
 - **Indisponibilidad concurrente del LLM**: Si el proveedor de LLM experimenta una caída global (*rate limit 429* o indisponibilidad *503*), el sistema debe propagar una excepción de tipo `AiProviderException` mapeada a una respuesta HTTP controlada (503 Service Unavailable o 429 Too Many Requests según el caso) sin registrar secretos ni prompts completos en los logs.
-- **Consultas concurrentes sobre el índice**: Si múltiples usuarios realizan consultas simultáneamente, el índice léxico en memoria DEBE garantizar operaciones de lectura concurrentes seguras (*thread-safe*) sin bloqueos mutuos que degraden el rendimiento.
+- **Consultas concurrentes sobre el índice**: Si múltiples usuarios realizan consultas simultáneamente, el índice (en memoria o el almacén vectorial) DEBE garantizar operaciones de lectura concurrentes seguras (*thread-safe*) sin bloqueos mutuos que degraden el rendimiento.
 
 ---
 
@@ -105,11 +105,15 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
   3. Documentos funcionales públicos de la plataforma, **bilingües (español e inglés)**, versionados en `backend/src/main/resources/knowledge/*.md`: política de cancelación (`cancellation-policy.md`), funcionamiento de las mentorías (`mentorships-how-it-works.md`) y preguntas frecuentes (`platform-faq.md`). Cada archivo declara `sourceId`, `type: POLICY_DOC` y `visibility: public`; **el indexador ignora cualquier archivo sin `visibility: public`**.
   4. Los fragmentos de oferta incluyen `mode` (asincrónica/en vivo) y `durationHours`, para poder responder si un servicio es en vivo y cuánto dura.
   El sistema NUNCA DEBE ingerir información privada de usuarios (reservas, pagos, correos electrónicos, identificadores sensibles) ni documentación interna (`docs/audit/**`, `docs/RISK-REGISTER.md`, configuraciones de seguridad).
-- **FR-005**: El sistema DEBE utilizar un motor de recuperación léxica determinista en memoria (algoritmo BM25 por defecto) con parámetros configurables en propiedades de aplicación:
+- **FR-005 (recuperación)**: El sistema DEBE recuperar fragmentos mediante el puerto `KnowledgeSearchPort` con **dos adaptadores intercambiables**, seleccionables por configuración (ADR-0008):
+  1. **`bm25`**: BM25 léxico determinista en memoria. Es la **referencia** (línea base de medición) y el respaldo.
+  2. **`vector`**: embeddings con un modelo **multilingüe** más un almacén vectorial (pgvector en la PostgreSQL existente, salvo que se confirme otra opción), con búsqueda por similitud coseno.
+  3. **`hybrid`**: ejecuta ambos y fusiona los rankings (por ejemplo, Reciprocal Rank Fusion).
+  Parámetros configurables en propiedades de aplicación:
   - Número máximo de fragmentos a recuperar (`topK`, por defecto 3).
-  - Umbral mínimo de relevancia o similitud (`minScoreThreshold`).
+  - Umbral mínimo de relevancia o similitud (`minScoreThreshold`), **independiente por estrategia**.
   - Límite máximo de caracteres inyectados en la ventana de contexto del prompt (por defecto 6.000 caracteres).
-  El uso de bases vectoriales o embeddings semánticos queda restringido y sujeto a justificación técnica formal aprobada.
+  La estrategia por defecto la decide la medición de FR-019, no una preferencia previa.
 - **FR-006**: Si la búsqueda en el corpus no produce ningún fragmento que supere el umbral mínimo de similitud, el sistema DEBE responder inmediatamente con `hasSufficientContext: false`, un mensaje amigable indicando la carencia de información en la plataforma y una lista `sources` vacía, **sin realizar ninguna invocación al modelo de lenguaje (LLM)**.
 - **FR-007**: El sistema DEBE realizar una validación cruzada y conciliación estricta entre los fragmentos inyectados en el contexto y el texto devuelto por el LLM, incluyendo en la colección `sources` devuelta al cliente **únicamente aquellas fuentes que hayan sido efectivamente citadas o utilizadas en la redacción de la respuesta**.
 - **FR-008**: El sistema DEBE aplicar un límite de tiempo estricto (*timeout*) a las llamadas al proveedor LLM, impuesto a nivel del cliente HTTP/ChatClient o mediante cancelación explícita (`Future.get(timeout)`). Queda expresamente prohibido detectar el timeout únicamente mediante análisis de texto o substrings del mensaje de error de una excepción genérica.
@@ -125,7 +129,11 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 
 - **FR-014 (idioma)**: El asistente DEBE responder en el idioma de la pregunta cuando sea **español o inglés**; para cualquier otro idioma responde en español. Los documentos de política existen en ambos idiomas y se indexan por secciones de idioma. El catálogo de ofertas se indexa tal como está redactado (hoy en español).
 - **FR-015 (sincronización del índice)**: El índice en memoria DEBE reconstruirse cuando se invalida la caché de ofertas (`OfferingCachePort.evictActiveOfferings()`, `[VERIFIED]` invocada en `OfferingCommandService` al crear, actualizar y (des)activar) y al iniciar la aplicación. La reconstrucción DEBE construir un índice nuevo y **sustituir la referencia de forma atómica**, de modo que las lecturas concurrentes nunca vean un índice parcial. Para categorías, el plan DEBE verificar si existe un gancho equivalente; si no, se invalidará desde `CategoryService`. NO se usan eventos de auditoría de Kafka (`OfferingCreated`, etc.) como disparador: son eventos de auditoría, no de dominio.
-- **FR-016 (límite conocido del idioma)**: BM25 es léxico: una pregunta en inglés NO recupera ofertas redactadas en español salvo por términos compartidos (p. ej. nombres de tecnologías como "Spring Boot"). Es una limitación aceptada, no un defecto. Criterios: las preguntas en inglés sobre **políticas** DEBEN resolverse (los documentos son bilingües); sobre **ofertas** se garantiza solo recuperación por términos compartidos. Mejorarlo (traducción de la consulta, campo de alias bilingüe) requiere una decisión posterior porque introduce una llamada a LLM antes de decidir si hay contexto, lo que contradice FR-006.
+- **FR-016 (idioma)**: BM25 es léxico: una pregunta en inglés NO recupera ofertas redactadas en español salvo por términos compartidos (p. ej. «Spring Boot»). Es la razón técnica de adoptar embeddings multilingües. Criterios: con la estrategia `vector` o `hybrid`, las preguntas en inglés sobre ofertas en español DEBEN poder recuperar la oferta correcta, y las preguntas en inglés sobre **políticas** DEBEN resolverse en cualquier estrategia (los documentos son bilingües). Se verifica con el conjunto de FR-019.
+
+- **FR-017 (dependencia de embeddings)**: calcular el embedding de la consulta NO cuenta como invocación al LLM generativo, pero es una dependencia externa salvo que el modelo sea local. Si el servicio de embeddings falla: `hybrid` DEBE responder solo con BM25; `vector` DEBE devolver `503`. **Nunca** respuestas simuladas. Los embeddings son una capacidad (`embedding`) de la cadena de fallback (HU-27/28).
+- **FR-018 (sincronización del almacén vectorial)**: al invalidarse la caché de ofertas SOLO se recalculan los embeddings de los fragmentos cambiados; la carga inicial se hace por lotes. Los textos enviados al proveedor de embeddings son **solo públicos**. La dimensión de la columna vectorial DEBE coincidir con la del modelo, y un cambio de modelo exige recalcular todos los vectores.
+- **FR-019 (evaluación)**: DEBE existir un conjunto de evaluación versionado de al menos 30 preguntas en español e inglés, con los fragmentos esperados y casos **sin respuesta**, y un informe de `hit@k`, `MRR` y falsos positivos por estrategia. Decide la estrategia por defecto.
 
 ---
 
@@ -133,7 +141,7 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 
 - **KnowledgeQuery**: Objeto de valor de dominio que encapsula la pregunta formulada por el cliente, su versión sanitizada libre de caracteres de escape maliciosos, la fecha/hora de la consulta y el identificador del usuario autenticado.
 - **KnowledgeChunk**: Entidad o registro de dominio que representa una unidad atómica de información pública indexada. Contiene un identificador unívoco (`sourceId`), un título descriptor, la tipología de fuente (`OFFERING`, `CATEGORY`, `POLICY_DOC`), el contenido textual del fragmento y metadatos complementarios (ej. ID de oferta asociada o URL relativa).
-- **KnowledgeSearchResult**: Resultado intermedio producido por el motor de búsqueda léxica (`KnowledgeSearchPort`). Contiene la colección de `KnowledgeChunk` seleccionados ordenados descendentemente por su puntaje BM25 de coincidencia con la consulta.
+- **KnowledgeSearchResult**: Resultado intermedio producido por el motor de recuperación (`KnowledgeSearchPort`). Contiene la colección de `KnowledgeChunk` seleccionados ordenados descendentemente por su puntaje BM25 de coincidencia con la consulta.
 - **KnowledgeSource**: Registro inmutable de transferencia que conforma el detalle de cada fuente validada que acompaña la respuesta final al usuario, conteniendo `sourceId`, `title`, `snippet` (extracto representativo) y `score` normalizado.
 - **KnowledgeAnswer**: Modelo de salida del caso de uso que consolida el texto generado (`answer`), el indicador booleano de suficiencia de información (`hasSufficientContext`) y la lista final de fuentes verificadas (`sources`).
 
@@ -144,7 +152,7 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 ### Measurable Outcomes
 
 - **SC-001**: El 100% de las solicitudes no autenticadas dirigidas a `POST /api/ai/knowledge/ask` son interceptadas y rechazadas con `HTTP 401 Unauthorized`.
-- **SC-002**: El 100% de las consultas cuya relevancia esté por debajo del umbral mínimo configurado retornan una respuesta con `hasSufficientContext: false` en un tiempo de respuesta inferior a 50 ms en percentil 95 (P95), registrando exactamente 0 llamadas salientes a APIs de LLM externas.
+- **SC-002**: El 100% de las consultas cuya relevancia esté por debajo del umbral mínimo configurado retornan `hasSufficientContext: false` con **0 invocaciones al LLM generativo**. Con la estrategia `bm25` el tiempo es inferior a 50 ms (P95) y no hay llamadas externas. Con `vector` o `hybrid` el tiempo depende del proveedor de embeddings: se mide y se reporta, sin fijar los 50 ms.
 - **SC-003**: Cero por ciento (0%) de discrepancia entre las fuentes listadas y el texto de la respuesta: el 100% de los elementos retornados en el arreglo `sources` deben corresponder a fragmentos citados y efectivamente utilizados en la síntesis de la respuesta.
 - **SC-004**: Cero por ciento (0%) de fuga o exposición de datos privados: ninguna consulta podrá recuperar ni sintetizar información perteneciente a usuarios privados (reservas personales, métodos de pago, correos electrónicos) ni documentos de seguridad interna.
 - **SC-005**: Cero por ciento (0%) de respuestas con datos fijos simulados en modo de producción: ante la pérdida de conectividad o fallo en las credenciales del proveedor LLM sin un fallback activo, el sistema responderá unívocamente con `HTTP 503` en el 100% de las ocasiones sin inventar precios fijos.
@@ -163,7 +171,7 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 - `[VERIFIED]` **Política de Cancelación en Dominio**: La política de cancelación está centralizada en la regla de negocio `BookingCancellationPolicy` (`backend/src/main/java/com/riwi/skillbridge/domain/service/BookingCancellationPolicy.java#L11-L35`), cuya antelación mínima proviene de la propiedad de configuración `app.booking.cancellation.minimum-notice-hours` con valor por defecto de 24 horas (`backend/src/main/resources/application.yml#L137`).
 - `[VERIFIED]` **Soporte de Spring AI**: El proyecto incluye `spring-ai.version` 1.1.8 en `backend/pom.xml#L23,L55-L60`, soportando tanto el modelo primario Gemini como OpenAI a través de la abstracción `ChatClient`.
 - `[VERIFIED]` **Componente de Frontend Existente**: La interfaz de usuario en `frontend/src/app/features/ai.component.ts#L8-L105` cuenta con la infraestructura visual para interactuar con servicios de IA de la plataforma; se ampliará para incorporar la vista de preguntas de conocimiento y la visualización de fuentes citadas.
-- `[INFERRED]` **Viabilidad de BM25 en Memoria**: Dado que el volumen actual de datos públicos consta de un número reducido de ofertas, categorías y documentos funcionales (< 100 fragmentos en total), un índice léxico en memoria basado en BM25 provee tiempos de respuesta inferiores a 5 ms con consumo de memoria despreciable (< 2 MB), prescindiendo por completo de la necesidad de una base vectorial dedicada o llamadas a modelos de embeddings.
+- `[INFERRED]` **Viabilidad de BM25 en Memoria**: Dado que el volumen actual de datos públicos consta de un número reducido de ofertas, categorías y documentos funcionales (< 100 fragmentos en total), un índice léxico en memoria basado en BM25 provee tiempos de respuesta inferiores a 5 ms con consumo de memoria despreciable (< 2 MB), prescindiendo por completo de la necesidad de una base vectorial dedicada o llamadas a modelos de embeddings. **La adopción de embeddings (ADR-0008) no se debe a que BM25 no baste, sino a aprendizaje y al cruce de idiomas.**
 - `[INFERRED]` **Integración con Cadena de Fallback**: La resolución del LLM para responder la consulta se articulará de manera compatible con el mecanismo de selección y fallback de proveedores reales especificado en las historias de resiliencia de IA (HU-27/HU-28).
 
 ---
@@ -176,9 +184,15 @@ Decididas el 2026-11-09:
 2. **Sincronización del índice**: por invalidación de la caché de ofertas con sustitución atómica del índice. Ver FR-015. (Se descarta engancharse a eventos de auditoría de Kafka.)
 3. **Documentos de política**: creados en `backend/src/main/resources/knowledge/` con solo reglas verificadas en el código. **Reembolsos, ausencias y reprogramación NO se documentan porque la política de negocio aún no está definida (issue #68)**; el asistente responderá `hasSufficientContext: false` a esas preguntas hasta que se definan y se añadan al corpus.
 
-Pendiente de confirmar:
+4. **Recuperación — DECIDIDO 2026-11-09: embeddings y almacén vectorial** (ADR-0008), con BM25 como adaptador de referencia. Motivo: aprendizaje y cruce de idiomas; con este volumen BM25 bastaría. Sustituye la decisión original «solo BM25 sin embeddings».
 
-4. `[NEEDS CLARIFICATION: Comportamiento interactivo de las fuentes citadas en la UI]` Recomendado A: tarjeta expandible con enlace a la oferta o política; B: chips informativos. Es P2/P3 y puede recortarse.
+Pendiente de confirmar (se aplica la recomendada hasta que se indique otra cosa):
+
+
+5. `[NEEDS CLARIFICATION: Almacén vectorial]` Recomendado: pgvector en la PostgreSQL existente (exige cambiar la imagen de PostgreSQL en compose y pruebas, y verificar que el PostgreSQL desplegado ofrezca la extensión). Alternativas: base vectorial dedicada; `VectorStore` en memoria.
+6. `[NEEDS CLARIFICATION: Conservar BM25]` Recomendado: sí, como referencia y para `hybrid`.
+7. `[NEEDS CLARIFICATION: Proveedor y modelo de embeddings]` Se decide en el plan, verificando disponibilidad, soporte de español e inglés, coste y cuota.
+8. `[NEEDS CLARIFICATION: Comportamiento interactivo de las fuentes citadas en la UI]` Recomendado A: tarjeta expandible con enlace a la oferta o política; B: chips informativos. Es P2/P3 y puede recortarse.
 
 ---
 
@@ -191,9 +205,9 @@ Pendiente de confirmar:
 
 ### Out of Scope
 - **Ingesta de información confidencial o privada**: Queda expresamente excluida del índice de conocimiento la ingesta de transacciones de pago, reservas históricas de usuarios, direcciones de correo electrónico, contraseñas o registros de auditoría interna (`docs/audit/**`, `RISK-REGISTER.md`).
-- **Base de datos vectorial externa o servicios de embeddings remotos**: No se incorporarán tecnologías como pgvector, Milvus, Qdrant ni modelos de incrustación semántica remota, manteniéndose el motor BM25 determinista en memoria.
+- **Entrenar o ajustar modelos de embeddings, un almacén vectorial distinto del elegido en el ADR-0008, y *reranking* con modelos.**
 - **Historial de conversación multi-turno persistente**: El endpoint procesará consultas individuales de pregunta-respuesta (*single-turn*). El soporte para sesiones de conversación con memoria histórica almacenada en base de datos queda para una fase posterior.
 - **Rate limiting distribuido a nivel de usuario/IP**: La limitación de tasa por usuario forma parte de la deuda técnica registrada (SEC-010 en `docs/RISK-REGISTER.md`) y se abordará en una iniciativa transversal de seguridad de API.
 - **Consulta a servicios externos (p. ej. el servicio de mentorías NestJS)**: el RAG no hace llamadas síncronas a otros servicios (ADR-0006). Las reglas de mentoría salen de los documentos de política curados.
 - **Indexar documentación de ingeniería** (`docs/contracts/**`, `docs/adr/**`, `docs/refinement/**`): los contratos describen el sistema, no son política pública.
-- **Alteración de esquemas relacionales o migraciones de base de datos**: No se modificarán tablas existentes ni se agregarán migraciones Flyway adicionales; el corpus estático se compilará a partir de las entidades existentes y archivos de recursos empaquetados.
+- **Alteración de tablas existentes.** Se permite **únicamente** una migración Flyway nueva para el almacén vectorial (extensión y tabla de fragmentos); su numeración se coordina con HU-22.

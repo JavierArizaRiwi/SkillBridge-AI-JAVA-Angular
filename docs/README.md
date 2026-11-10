@@ -24,7 +24,7 @@
 | [`adr/`](adr/README.md) | Decisiones de arquitectura (0001 a 0007) con [índice](adr/README.md); incluye [ADR-001 (proveedores de IA)](adr/ADR-001-AI-PROVIDER-ABSTRACTION.md) y su [comparativa](adr/AI_PROVIDER_COMPARISON.md) |
 | [`MODULES/`](MODULES/) | Guías por módulo: [backend](MODULES/backend.md), [frontend](MODULES/frontend.md), [audit-service](MODULES/audit-service.md) |
 | [`contracts/`](contracts/) | Contratos entre componentes: [mentorías](contracts/mentorships/gap-matrix.md) y [eventos de analítica](contracts/analytics-events.md) (HU-22 y HU-25) |
-| [`guides/`](guides/) | Guías paso a paso, p. ej. [despliegue en capa gratuita](guides/free-tier-deployment.md) |
+| [`guides/`](guides/) | Guías: [despliegue en capa gratuita](guides/free-tier-deployment.md) y [BM25 frente a embeddings](guides/rag-bm25-vs-embeddings.md) |
 | [`features/`](features/) | Resúmenes de implementación de HUs ya entregadas (HU-09, HU-12, HU-17, HU-23) |
 | [`agents/`](agents/) | Operación de agentes, SDD y worktrees |
 | [`refinement/`](refinement/) | Refinamiento de HUs y registro de decisiones |

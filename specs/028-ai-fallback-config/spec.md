@@ -109,7 +109,7 @@ Como administrador del sistema, quiero disponer de métricas estandarizadas en M
 
 ### Functional Requirements
 
-- **FR-001**: El sistema DEBE exponer una configuración tipada y jerárquica bajo el prefijo `app.ai.fallback.*` estructurada por capacidades: `chat`, `vision`, `stt`, `tts` y `rag`.
+- **FR-001**: El sistema DEBE exponer una configuración tipada y jerárquica bajo el prefijo `app.ai.fallback.*` estructurada por capacidades: `chat`, `vision`, `stt`, `tts`, `rag` y `embedding` (esta última para el almacén vectorial de HU-26, ADR-0008).
 - **FR-002**: El sistema DEBE permitir definir para cada capacidad una lista ordenada de respaldo (`chain`) compuesta por los atributos `{provider, model, enabled, timeout-seconds}`.
 - **FR-003**: El sistema DEBE permitir configurar por capacidad los parámetros de resiliencia: `max-attempts` (número máximo de intentos), `retry-backoff` (tiempo y multiplicador de reintento) y `circuit-breaker` (umbral de tasa de fallos, tamaño de ventana deslizante y tiempo de espera en estado abierto).
 - **FR-004**: El sistema DEBE admitir la sobreescritura de todas las propiedades de fallback mediante variables de entorno en tiempo de despliegue, incluyendo un formato simplificado por capacidad (ej. `AI_CHAT_FALLBACK_CHAIN=gemini:gemini-3.8-flash,openai:gpt-4o-mini`).

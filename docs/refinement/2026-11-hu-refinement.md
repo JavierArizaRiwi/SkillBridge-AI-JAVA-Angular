@@ -220,3 +220,7 @@ Reembolsos, política de ausencia y reprogramación de mentorías (issue #68). E
 | HU-22: defecto previo | `RecommendationGenerated` no lleva ofertas y el consumidor acumula por `userId`; hay que arreglarlo antes (FR-008 a FR-010) |
 
 Contrato compartido: [`docs/contracts/analytics-events.md`](../contracts/analytics-events.md).
+
+## 9. Recuperación del RAG (2026-11-09)
+
+El propietario decidió **adoptar embeddings y un almacén vectorial** en HU-26 (antes: solo BM25). Motivo: aprendizaje y cruce de idiomas; con este volumen BM25 bastaría. Se conserva BM25 como adaptador de referencia y para búsqueda híbrida. Decisión: [ADR-0008](../adr/0008-rag-retrieval-embeddings-and-vector-store.md); explicación: [guía](../guides/rag-bm25-vs-embeddings.md). Pendientes de confirmar: almacén (recomendado pgvector), conservar BM25 (recomendado) y proveedor de embeddings (en el plan). Impacto: spec 026 (FR-005, FR-016 a FR-019, SC-002, fuera de alcance), spec 028 (capacidad `embedding`) y migración nueva para el almacén vectorial.
