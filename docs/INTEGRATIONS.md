@@ -27,7 +27,7 @@ This document catalogs all verified infrastructure, broker, external API, and mi
 
 - **Driver**: `org.postgresql.Driver` with HikariCP connection pool.
 - **Connection Configuration**:
-  - Pool Size: Default `DB_POOL_SIZE=5`, minimum idle 1 ([application.yml:61-62](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml#L61-L62)).
+  - Pool Size: Default `DB_POOL_SIZE=5`, minimum idle 1 ([application.yml:61-62](../backend/src/main/resources/application.yml#L61-L62)).
   - DDL Validation: `spring.jpa.hibernate.ddl-auto: validate`. Schema modification is strictly reserved for Flyway.
 - **Flyway Migrations**:
   - `V1__init.sql`: Creates core tables (`users`, `offerings`, `bookings`).
@@ -42,10 +42,10 @@ This document catalogs all verified infrastructure, broker, external API, and mi
 
 ## 3. In-Memory Caching: Redis 8
 
-- **Adapter**: [RedisOfferingCacheAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/cache/RedisOfferingCacheAdapter.java).
+- **Adapter**: [RedisOfferingCacheAdapter.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/cache/RedisOfferingCacheAdapter.java).
 - **Pattern**: Cache-Aside.
 - **Key Schema**: `catalog::offerings` stores serialized JSON list of active offerings.
-- **TTL**: Configured via `app.cache.offerings-ttl-minutes: 10` (10 minutes) ([application.yml:132](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml#L132)).
+- **TTL**: Configured via `app.cache.offerings-ttl-minutes: 10` (10 minutes) ([application.yml:132](../backend/src/main/resources/application.yml#L132)).
 - **Connection Timeout**: `spring.data.redis.timeout: 2s`.
 - **Eviction Strategy**: Calling `OfferingCommandService` write methods (`create`, `update`, `activate`, `deactivate`) triggers `cachePort.evictCatalog()`.
 
@@ -53,7 +53,7 @@ This document catalogs all verified infrastructure, broker, external API, and mi
 
 ## 4. Asynchronous Messaging: RabbitMQ 4
 
-- **Configuration Class**: [RabbitConfiguration.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/RabbitConfiguration.java).
+- **Configuration Class**: [RabbitConfiguration.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/RabbitConfiguration.java).
 - **Topology**:
   - Exchange: `skillbridge.notifications` (Topic Exchange).
   - Main Queue: `skillbridge.notifications.queue` bound with routing key `notification.*`.
@@ -66,7 +66,7 @@ This document catalogs all verified infrastructure, broker, external API, and mi
   - Max Attempts: `3`.
   - Requeue on Failure: `false` (moves to DLQ after 3 failures).
 - **Consumer Behavior**:
-  - [NotificationConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/messaging/NotificationConsumer.java) handles messages.
+  - [NotificationConsumer.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/messaging/NotificationConsumer.java) handles messages.
   - If `PermanentNotificationException` occurs, message is discarded/sent directly to DLQ without retrying.
 
 ---
@@ -74,13 +74,13 @@ This document catalogs all verified infrastructure, broker, external API, and mi
 ## 5. Persistent Event Streaming: Apache Kafka 7.8
 
 - **Topology & Topics**:
-  - Primary Topic: `booking-events` ([application.yml:153](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml#L153)).
-  - Audit Topic: Mapped to `booking-events` ([application.yml:154](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml#L154)) to accommodate the audit-service consumer.
+  - Primary Topic: `booking-events` ([application.yml:153](../backend/src/main/resources/application.yml#L153)).
+  - Audit Topic: Mapped to `booking-events` ([application.yml:154](../backend/src/main/resources/application.yml#L154)) to accommodate the audit-service consumer.
 - **Publishers**:
-  - [KafkaBookingEventPublisher.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/KafkaBookingEventPublisher.java): Publishes `BookingCreated` and `BookingCancelled`.
-  - [KafkaAuditEventPublisher.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/KafkaAuditEventPublisher.java): Publishes security events (`UserLoggedIn`, `UserRegistered`).
+  - [KafkaBookingEventPublisher.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/KafkaBookingEventPublisher.java): Publishes `BookingCreated` and `BookingCancelled`.
+  - [KafkaAuditEventPublisher.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/KafkaAuditEventPublisher.java): Publishes security events (`UserLoggedIn`, `UserRegistered`).
 - **Consumer**:
-  - [KafkaAuditConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java) in `audit-service/backend`:
+  - [KafkaAuditConsumer.java](../audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java) in `audit-service/backend`:
   - Consumer Group: `audit-service-group`.
   - Deserializer: `org.springframework.kafka.support.serializer.ErrorHandlingDeserializer` wrapping `JsonDeserializer`.
   - Target Datastore: MongoDB collection `audit_events`.
@@ -90,19 +90,19 @@ This document catalogs all verified infrastructure, broker, external API, and mi
 ## 6. Payment Processing: Stripe & Simulated Fallback
 
 - **Configuration**:
-  - `app.payment.provider`: `stripe` (default) or `simulated` ([application.yml:156](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml#L156)).
+  - `app.payment.provider`: `stripe` (default) or `simulated` ([application.yml:156](../backend/src/main/resources/application.yml#L156)).
 - **Stripe Mode**:
-  - [StripePaymentAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/stripe/StripePaymentAdapter.java) invokes the Stripe API using OpenFeign ([StripeFeignClient.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/stripe/StripeFeignClient.java)) to create a `PaymentIntent`.
+  - [StripePaymentAdapter.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/stripe/StripePaymentAdapter.java) invokes the Stripe API using OpenFeign ([StripeFeignClient.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/stripe/StripeFeignClient.java)) to create a `PaymentIntent`.
   - Returns `clientSecret` to the client for frontend confirmation via Stripe Elements.
-  - Asynchronous webhook reception: [StripeWebhookController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/webhook/StripeWebhookController.java) cryptographically validates `Stripe-Signature` header via the Stripe Java SDK (`Webhook.constructEvent(...)`).
+  - Asynchronous webhook reception: [StripeWebhookController.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/webhook/StripeWebhookController.java) cryptographically validates `Stripe-Signature` header via the Stripe Java SDK (`Webhook.constructEvent(...)`).
 - **Simulated Mode**:
-  - [SimulatedPaymentAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/SimulatedPaymentAdapter.java) approves any request with card ending in an even digit and declines odd digits.
+  - [SimulatedPaymentAdapter.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/SimulatedPaymentAdapter.java) approves any request with card ending in an even digit and declines odd digits.
 
 ---
 
 ## 7. AI & Multimodal Providers
 
-- **Provider Switching Architecture**: Complies with [docs/ADR-001-AI-PROVIDER-ABSTRACTION.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/ADR-001-AI-PROVIDER-ABSTRACTION.md).
+- **Provider Switching Architecture**: Complies with [docs/adr/ADR-001-AI-PROVIDER-ABSTRACTION.md](adr/ADR-001-AI-PROVIDER-ABSTRACTION.md).
 - **Configuration Switches**:
   - `app.ai.provider: ${AI_PROVIDER:gemini}` (activates `GeminiAiAdapter` or `OpenAiAiAdapter` via `@ConditionalOnProperty`).
   - `app.ai.audio-provider: ${AI_AUDIO_PROVIDER:gemini}` (activates `GroqSpeechToTextAdapter` or `GeminiSpeechToTextAdapter`).

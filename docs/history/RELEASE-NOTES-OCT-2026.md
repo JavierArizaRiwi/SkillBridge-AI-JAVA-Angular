@@ -186,7 +186,7 @@ Simulación completa del flujo de pagos.
 
 Archivos nuevos:
 - `CHANGELOG.md` - Historial completo de cambios
-- `docs/DEMO-HU-22-HU-15.md` - Guía interactiva de demostración
+- `docs/history/DEMO-HU-22-HU-15.md` - Guía interactiva de demostración
 - `scripts/demo-commands.sh` - Script para ejecutar demo
 
 Archivos actualizados:
@@ -247,10 +247,10 @@ Estos son unitarios y no bloquean CI/CD.
 
 ### Architecture
 - ADR-001: Abstracción de proveedores - [docs/adr/]
-- Kafka Integration - [docs/kafka.md]
+- Kafka Integration - [docs/architecture/kafka.md]
 
 ### Demo
-- Guía completa - [docs/DEMO-HU-22-HU-15.md]
+- Guía completa - [docs/history/DEMO-HU-22-HU-15.md]
 - Script interactivo - [scripts/demo-commands.sh]
 
 ---
