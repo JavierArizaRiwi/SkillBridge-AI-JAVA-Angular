@@ -61,3 +61,13 @@ Para garantizar que múltiples ingenieros y agentes puedan trabajar simultáneam
    - Cada feature se desarrolla en su rama `feature/<NNN>-<slug>` creada a partir de `develop` (o la base confirmada).
    - Los cambios de implementación se delegan a worktrees de corta duración mediante `scripts/agent-worktree-agy.sh`.
    - La integración a la rama principal de la feature se efectúa mediante revisión de diffs y pruebas verificadas.
+
+---
+
+## 4. Dependencias y Secuenciación de Features Pendientes
+
+Para consultar el grafo completo de dependencias, prerrequisitos técnicos y orden de ejecución recomendado entre las especificaciones activas (HU-22, HU-25, HU-26, HU-27, HU-28, HU-29, HU-16), consulta:
+
+- 📊 **[Matriz y Grafo de Dependencias de HUs Pendientes](../docs/refinement/hu-dependencies.md)**
+- 📋 **[Refinamiento General de HUs (noviembre 2026)](../docs/refinement/2026-11-hu-refinement.md)**
+

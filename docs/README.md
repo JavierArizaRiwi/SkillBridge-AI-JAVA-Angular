@@ -27,7 +27,7 @@
 | [`guides/`](guides/) | Guías: [despliegue en capa gratuita](guides/free-tier-deployment.md) y [BM25 frente a embeddings](guides/rag-bm25-vs-embeddings.md) |
 | [`features/`](features/) | Resúmenes de implementación de HUs ya entregadas (HU-09, HU-12, HU-17, HU-23) |
 | [`agents/`](agents/) | Operación de agentes, SDD y worktrees |
-| [`refinement/`](refinement/) | Refinamiento de HUs y registro de decisiones |
+| [`refinement/`](refinement/) | Refinamiento de HUs, registro de decisiones y [matriz de dependencias](refinement/hu-dependencies.md) |
 | [`course/`](course/) | Material pedagógico: backlog para las células y guía del instructor |
 | [`history/`](history/) | Informes de un momento concreto (octubre 2026): notas de versión, demo, bloqueos y conflictos. Se conservan como historia, no como guía |
 | [`audit/`](audit/) | Evidencia de auditoría. **Protegida: no se edita** |

@@ -6,6 +6,8 @@ ver [ADR-0006](../adr/0006-hybrid-monolith-and-services.md). Este documento prop
 
 Convención: `[VERIFIED]` confirmado en el repo en esta sesión · `[INFERRED]` deducido · `[UNKNOWN]` sin confirmar.
 
+> **Matriz de relaciones:** Para consultar el mapa de dependencias directas, prerrequisitos técnicos y la ruta de ejecución recomendada entre estas HUs, ver [Matriz y Grafo de Dependencias de HUs Pendientes](hu-dependencies.md).
+
 ## 0. Panorama
 
 | HU | Issue | Estado real | Acción propuesta |
