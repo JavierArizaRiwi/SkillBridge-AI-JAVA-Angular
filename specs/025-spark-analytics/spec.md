@@ -1,5 +1,5 @@
 # Feature Specification: Batch Analytics with Apache Spark
-**Feature Branch**: `feature/025-spark-analytics` | **Created**: 2026-10-22 | **Status**: Draft | **Issue**: #76
+**Feature Branch**: `feature/025-spark-analytics` | **Created**: 2026-10-22 | **Status**: Draft (refinada 2026-11-09; pendiente de aprobación humana) | **Issue**: #76
 **Input**: Como Admin / analista de negocio, quiero que las métricas analíticas históricas (reservas, cancelaciones, conversión de recomendaciones y demanda por oferta/día) se calculen con un pipeline batch en Apache Spark sobre los eventos de negocio, para poder escalar el análisis a grandes volúmenes sin cargar el camino transaccional.
 
 ---
@@ -14,9 +14,9 @@ Como analista de negocio o administrador de la plataforma, quiero ejecutar un jo
 - **Independent Test**: Ejecutar el pipeline de procesamiento batch sobre un lote de eventos de prueba (dataset controlado / golden dataset) con ejecuciones repetidas y comparar campo a campo la salida de métricas agregadas contra una implementación de referencia (SQL determinista / Python). La salida debe coincidir en el 100% de los registros y mantener idéntico resultado ante re-ejecución con eventos duplicados.
 - **Acceptance Scenarios**:
   - **Scenario 1.1 (Cálculo exacto de agregados diarios)**:
-    - *Given*: Un lote de eventos que contiene 100 eventos `BookingCreated`, 20 eventos `BookingCancelled` y 200 eventos `RecommendationGenerated` asociados a una oferta `O-101` para la fecha `2026-10-20` (UTC).
+    - *Given*: Un lote de eventos para la oferta `O-101` y la fecha `2026-10-20` (UTC) que contiene 200 eventos `RecommendationGenerated` que incluyen `O-101`, 100 eventos `BookingCreated` (50 con `recommendationId`) y 20 eventos `BookingCancelled` (10 con `recommendationId`).
     - *When*: Se ejecuta el pipeline analítico batch sobre dicho lote.
-    - *Then*: El sistema produce un registro diario para `(O-101, 2026-10-20)` con `bookings = 100`, `cancellations = 20`, `effectiveBookings = 80`, `recommendations = 200` y `conversionRate = 0.40` (80 / 200).
+    - *Then*: El sistema produce un registro diario para `(O-101, 2026-10-20)` con `recommendations = 200`, `bookings_total = 100`, `cancellations_total = 20`, `bookings_attributed = 50`, `cancellations_attributed = 10`, `effective_attributed = 40`, `conversion_rate = 0.20` (40 / 200) y `total_booking_rate = 0.40` (80 / 200). Definiciones normativas en `docs/contracts/analytics-events.md` §3.
   - **Scenario 1.2 (Idempotencia ante reintentos y eventos duplicados)**:
     - *Given*: Un lote de eventos donde un 25% de los registros tienen identificadores `eventId` duplicados (simulando reintentos de entrega de mensajería).
     - *When*: Se ejecuta el pipeline analítico batch.
@@ -82,8 +82,8 @@ Como operador de infraestructura / DevOps, quiero que el servicio de analítica 
    - Si una oferta recibe reservas directas en la plataforma sin haber sido expuesta en recomendaciones previas (`recommendations = 0`), la tasa de conversión debe computarse como `0.0` (o limitarse a `1.0` si se maneja tasa acotada), evitando divisiones por cero o valores infinitos.
 6. **Lote de datos completamente vacío (Zero-byte o 0 eventos)**:
    - La ingesta de un lote vacío no debe provocar excepciones ni fallos de ejecución; debe finalizar con código de salida exitoso y emitir 0 registros de salida.
-7. **Desincronización de reloj / Timestamps futuros [NEEDS CLARIFICATION]**:
-   - Eventos con `occurredAt` con fechas futuras respecto a la fecha del lote requieren una política de saneamiento definida (aislamiento en cuarentena vs descarte controlado).
+7. **Desincronización de reloj / Timestamps futuros (decidido: cuarentena)**:
+   - Eventos con `occurredAt` posterior al instante de corte del lote se apartan a `quarantine/` sin abortar el proceso, y se informa su número (`docs/contracts/analytics-events.md` §5).
 
 ---
 
@@ -99,7 +99,7 @@ Como operador de infraestructura / DevOps, quiero que el servicio de analítica 
   - Total de reservas efectivas (`effectiveBookings = max(0, bookings - cancellations)`).
   - Total de veces que la oferta fue recomendada por IA (`recommendations`).
   - Total de usuarios únicos impactados por recomendaciones de la oferta (`unique_users`).
-  - Tasa de conversión diaria (`conversion_rate = effectiveBookings / recommendations` si `recommendations > 0`, caso contrario `0.0`).
+  - Métricas de atribución y conversión según `docs/contracts/analytics-events.md` §3: `bookings_total`, `cancellations_total`, `bookings_attributed`, `cancellations_attributed`, `effective_attributed`, la **conversión oficial** `conversion_rate = effective_attributed / recommendations` (o `0.0` si no hay recomendaciones) y la tasa informativa `total_booking_rate`. Los eventos v1 sin `recommendationId` cuentan solo en los totales.
 - **FR-004**: El sistema DEBE garantizar idempotencia estricta en el procesamiento batch deduplicando los eventos por su identificador único `eventId` antes de ejecutar cualquier cálculo de agregación.
 - **FR-005**: El sistema DEBE persistir las métricas calculadas exclusivamente en un destino de almacenamiento analítico desacoplado (directorio de ficheros Parquet estructurados o tabla analítica segregada en base de datos sin relaciones de integridad referencial hacia el esquema OLTP), prohibiendo cualquier operación de escritura en las tablas transaccionales del backend (`bookings`, `offerings`, `users`, `recommendation_events`, `recommendation_daily_metrics` transaccional).
 - **FR-006**: El job batch DEBE soportar ejecución en modo local (`local[*]`) para entornos de desarrollo y pruebas automatizadas, así como modo empaquetado para despliegue distribuido vía gestor de recursos de Spark (`spark-submit`).
@@ -163,14 +163,14 @@ Como operador de infraestructura / DevOps, quiero que el servicio de analítica 
 
 ### Decisiones y supuestos que requieren clarificación de producto / negocio
 
-- **[NEEDS CLARIFICATION: Destino analítico primario]**: El criterio de aceptación del issue establece *"Destino de resultados definido (tabla analítica separada o ficheros Parquet) sin escribir en tablas OLTP"*. Se debe decidir cuál será el formato primario oficial para el consumo de analítica:
+- **[DECIDIDO 2026-11-09: Destino analítico primario → Opción A, Parquet particionado por fecha]**: El criterio de aceptación del issue establece *"Destino de resultados definido (tabla analítica separada o ficheros Parquet) sin escribir en tablas OLTP"*. Se debe decidir cuál será el formato primario oficial para el consumo de analítica:
   - *Opción A (Recomendada)*: Ficheros Parquet estructurados y particionados por fecha (`date=YYYY-MM-DD/`) almacenados en directorio/volumen analítico desacoplado (formato columnar estándar para analítica y Big Data).
   - *Opción B*: Tabla analítica segregada en la base de datos PostgreSQL (ej. esquema `analytics.daily_metrics`) sin claves foráneas a las tablas OLTP.
   - *Opción C*: Formato dual: generación nativa en Parquet y comando opcional de sincronización a tabla relacional analítica si herramientas de reportería SQL lo requieren.
-- **[NEEDS CLARIFICATION: Alcance de cálculo de métricas avanzadas (trend_score y forecast_next_7_days)]**: El criterio del issue solicita *"Calcula al menos recommendation_daily_metrics (reservas, cancelaciones, conversión por oferta y día)"*. En el backend actual, `DemandAnalyticsService` calcula `trend_score` (fórmula con ventana móvil de 14 días) y `forecast_next_7_days`. Se requiere acordar el alcance del cálculo en el job batch:
+- **[DECIDIDO 2026-11-09: Alcance → Opción A, solo agregados diarios; `trend_score` y pronóstico quedan en HU-22]**: El criterio del issue solicita *"Calcula al menos recommendation_daily_metrics (reservas, cancelaciones, conversión por oferta y día)"*. En el backend actual, `DemandAnalyticsService` calcula `trend_score` (fórmula con ventana móvil de 14 días) y `forecast_next_7_days`. Se requiere acordar el alcance del cálculo en el job batch:
   - *Opción A (Recomendada)*: Limitar el MVP batch de esta especificación a las métricas agregadas directas por oferta y día (`recommendations`, `unique_users`, `bookings`, `cancellations`, `effectiveBookings`, `conversion_rate`), dejando `trend_score` y `forecast_next_7_days` como una extensión o vista analítica posterior.
   - *Opción B*: Replicar el algoritmo completo de ventana deslizante de 14 días (`growthRate`, `trendScore`, `forecastNext7Days`) dentro del job Spark, requiriendo que cada lote de entrada garantice al menos 14 días continuos de datos históricos.
-- **[NEEDS CLARIFICATION: Política ante eventos con timestamps en el futuro o desincronización de reloj]**: Cómo actuar ante eventos con timestamps de ocurrencia posteriores a la fecha de corte del procesamiento por lotes:
+- **[DECIDIDO 2026-11-09: Eventos con timestamps futuros → Opción A, cuarentena sin abortar]**: Cómo actuar ante eventos con timestamps de ocurrencia posteriores a la fecha de corte del procesamiento por lotes:
   - *Opción A (Recomendada)*: Segregar los eventos anómalos (`occurredAt > execution_timestamp`) en un dataset de cuarentena (`quarantine/`) sin abortar el job principal.
   - *Opción B*: Descartar silenciosamente los eventos anómalos emitiendo una alerta en el registro de métricas de calidad de datos.
   - *Opción C*: Tolerar un desfase máximo (ej. hasta 10 minutos por desincronización de reloj de nodo emisor) ajustando el evento a la ventana actual y cuarentenar desviaciones mayores.
@@ -191,6 +191,37 @@ Como operador de infraestructura / DevOps, quiero que el servicio de analítica 
 - `[INFERRED]`: El job Spark debe ser un proyecto completamente autónomo en su propia carpeta (ej. `analytics/spark/`) con build tool propio (Maven/Sbt/Gradle o Poetry/pip si PySpark), sin compartir `pom.xml` padre ni añadir JARs de Spark al classpath de la aplicación Spring Boot.
 - `[INFERRED]`: La ingesta de datos del job batch operará sobre volcados periódicos o archivos exportados desde Kafka/PostgreSQL (formatos JSONL o Parquet) en lugar de una conexión directa que bloquee tablas relacionales de producción.
 - `[INFERRED]`: Conforme a la evaluación técnica previa SPARK-001 (donde DuckDB procesó $10^6$ eventos en 1,5 s frente a 5,9 s de Spark por el overhead de la JVM), el uso de Spark en SkillBridge no se justifica para la escala actual de demostración, por lo que su inclusión debe ser estrictamente modular, apagada por defecto y orientada a preparación de escala futura.
+
+---
+
+## Relación con HU-22 (decidida el 2026-11-09)
+
+HU-22 y HU-25 calculan métricas parecidas y NO deben duplicarse. Frontera:
+
+| | HU-22 (monolito) | HU-25 (Spark) |
+|---|---|---|
+| Rol | Servir tendencias **en línea** a la aplicación | **Reprocesar el histórico** fuera del camino transaccional |
+| Datos | PostgreSQL: `recommendation_events`, `recommendation_daily_metrics` | Eventos exportados de Kafka (JSON/JSONL/Parquet) |
+| Métricas | `trendScore`, `conversionRate`, pronóstico de 7 días | Agregados diarios por oferta: recomendaciones, reservas, cancelaciones, conversión |
+| Escribe en | Tablas del monolito | **Solo** almacén analítico aparte; nunca tablas OLTP |
+| Ejecución | Incremental, en tiempo real | Batch bajo demanda (perfil `analytics` de Compose) |
+
+HU-22 NO depende de Spark para funcionar. Spark **valida** a HU-22: sobre un dataset compartido, ambos deben producir los mismos agregados (FR-007). Los agregados de HU-25 usan la **definición de conversión que fije HU-22** (ver `specs/022-demand-analytics/spec.md`), no la actual.
+
+## Alcance honesto de Spark
+
+La evaluación previa SPARK-001 (tarea de `agy` del 2026-10-22; informe en el commit `3bc992a`, `docs/tasks/reports/SPARK-001/`, ya no presente en el árbol actual) **reportó**, sobre datos sintéticos y en una sola máquina, DuckDB 1,48 s frente a Spark 5,92 s para 10^6 eventos. El coordinador **no re-ejecutó** ese benchmark (`[REPORTED]`). Su decisión registrada fue **no adoptar Spark** y usar DuckDB si hiciera falta un batch (`DECISIONS-RAG-SPARK.md`). Esta HU lo reintroduce como componente opcional; no hay medición propia del volumen real. **Decisión (2026-11-09): Spark es un requisito obligatorio de esta HU** (lo exige el curso / quien evalúa el proyecto), aunque el volumen actual no lo justifique técnicamente. Por tanto se entrega Spark, pero con un diseño que no oculta eso:
+
+- **Contrato de motor común**: la entrada (eventos `BusinessEvent`) y la salida (agregados diarios por oferta) se definen independientemente del motor.
+- **Motor de referencia ligero** (SQL/DuckDB o Python, ya exigido por FR-007) como validador independiente: Spark DEBE producir resultados idénticos a la referencia sobre el mismo dataset.
+- **Lenguaje: Python (PySpark), independiente del proyecto Java** (decidido 2026-11-09). El módulo no usa Maven ni comparte `pom.xml`, código ni dependencias con `backend/` o `audit-service/`; se construye con su propio gestor de dependencias de Python con **versiones fijadas** (`==`). Aclaración técnica: Spark en sí corre sobre la JVM, así que PySpark necesita un JDK en tiempo de ejecución. Esa necesidad se encapsula en la imagen de su contenedor (perfil `analytics`); en una máquina sin Docker habría que tener un JDK instalado, pero **no es el JDK ni el build del proyecto Java**. La versión de Python, de PySpark y del JDK compatibles se verifican y fijan en el plan, no en esta spec.
+- **Entrada: archivos JSONL exportados** (decidido 2026-11-09). El job solo lee un directorio con `manifest.json` y `events-*.jsonl`; no se conecta a Kafka ni a bases de datos. Formato, procedencia (`production` | `synthetic`) y regla de cuarentena en `docs/contracts/analytics-events.md` §4–5. Los datos de prueba salen de un **generador determinista** con semilla.
+- **Definiciones y reglas compartidas**: las métricas (`conversion_rate` atribuida, `bookings_total`, etc.), la deduplicación determinista por `eventId` y la salida idempotente por partición están en `docs/contracts/analytics-events.md` §3 y §5. La referencia en Python y Spark DEBEN dar resultados idénticos.
+- **Dependencia con HU-22**: el cálculo sobre datos reales exige `RecommendationGenerated` v2 y `recommendationId` en las reservas (HU-22). Con **datos sintéticos** HU-25 puede desarrollarse y probarse **sin esperar** a HU-22.
+- **Spark se ejecuta bajo el perfil `analytics`** de Compose (no arranca por defecto), sin tocar `backend/`, `frontend/` ni `audit-service/` (FR-009).
+- El README del módulo DEBE decir con claridad que Spark se adopta por requisito y no por volumen, y listar los umbrales cuantitativos en los que sería técnicamente necesario (FR-011).
+
+Las tres decisiones de producto de la sección Assumptions quedaron **decididas el 2026-11-09**: destino **Parquet** particionado por fecha; alcance **solo agregados diarios** por oferta (la tendencia y el pronóstico siguen en HU-22); eventos con fecha futura a **cuarentena** sin abortar el proceso.
 
 ---
 

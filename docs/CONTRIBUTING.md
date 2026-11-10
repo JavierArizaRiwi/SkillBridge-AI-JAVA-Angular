@@ -12,7 +12,7 @@ Before writing any code:
 2. **Review Database Schema**:
    - Check `backend/src/main/resources/db/migration/` to understand existing tables, constraints, and column data types.
 3. **Check Routing & Security**:
-   - Verify if the route requires authentication or specific roles in [SecurityConfiguration.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java).
+   - Verify if the route requires authentication or specific roles in [SecurityConfiguration.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java).
 
 ---
 

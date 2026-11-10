@@ -46,7 +46,7 @@ read -r -d '' BODY << 'ENDPR' || true
 ### Conflict Resolution
 - ✅ All conflicts resolved using `git rebase -X theirs --autostash`
 - ✅ Zero residual conflicts
-- ✅ Full verification report: docs/CONFLICT-RESOLUTION-REPORT.md
+- ✅ Full verification report: docs/history/CONFLICT-RESOLUTION-REPORT.md
 
 ### Documentation
 - ✅ CHANGELOG.md - Technical changes and requirements
@@ -80,7 +80,7 @@ read -r -d '' BODY << 'ENDPR' || true
 5. Production deployment
 
 ---
-**See**: docs/CONFLICT-RESOLUTION-REPORT.md for full technical details
+**See**: docs/history/CONFLICT-RESOLUTION-REPORT.md for full technical details
 ENDPR
 
 # Crear PR vía GitHub API

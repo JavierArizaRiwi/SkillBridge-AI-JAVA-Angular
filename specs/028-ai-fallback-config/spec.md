@@ -1,6 +1,6 @@
 # Feature Specification: Configuración y Resiliencia del Fallback de IA
 
-**Feature Branch**: `feature/028-ai-fallback-config` | **Created**: 2026-10-22 | **Status**: Draft | **Issue**: #79  
+**Feature Branch**: `feature/028-ai-fallback-config` | **Created**: 2026-10-22 | **Status**: Draft (refinada 2026-11-09; pendiente de aprobación humana) | **Issue**: #79  
 **Input**: Como Admin / operador de la plataforma, quiero configurar sin recompilar el orden de los modelos de IA de respaldo, sus timeouts, reintentos y circuit breakers, y ver qué proveedor está respondiendo, para controlar coste, latencia y disponibilidad de las funciones de IA en cada entorno.
 
 ---
@@ -109,7 +109,7 @@ Como administrador del sistema, quiero disponer de métricas estandarizadas en M
 
 ### Functional Requirements
 
-- **FR-001**: El sistema DEBE exponer una configuración tipada y jerárquica bajo el prefijo `app.ai.fallback.*` estructurada por capacidades: `chat`, `vision`, `stt`, `tts` y `rag`.
+- **FR-001**: El sistema DEBE exponer una configuración tipada y jerárquica bajo el prefijo `app.ai.fallback.*` estructurada por capacidades: `chat`, `vision`, `stt`, `tts`, `rag` y `embedding` (esta última para el almacén vectorial de HU-26, ADR-0008).
 - **FR-002**: El sistema DEBE permitir definir para cada capacidad una lista ordenada de respaldo (`chain`) compuesta por los atributos `{provider, model, enabled, timeout-seconds}`.
 - **FR-003**: El sistema DEBE permitir configurar por capacidad los parámetros de resiliencia: `max-attempts` (número máximo de intentos), `retry-backoff` (tiempo y multiplicador de reintento) y `circuit-breaker` (umbral de tasa de fallos, tamaño de ventana deslizante y tiempo de espera en estado abierto).
 - **FR-004**: El sistema DEBE admitir la sobreescritura de todas las propiedades de fallback mediante variables de entorno en tiempo de despliegue, incluyendo un formato simplificado por capacidad (ej. `AI_CHAT_FALLBACK_CHAIN=gemini:gemini-3.8-flash,openai:gpt-4o-mini`).
@@ -165,29 +165,24 @@ Como administrador del sistema, quiero disponer de métricas estandarizadas en M
 - `[VERIFIED: .env.example:50-71]`: Registra las variables de entorno actuales para IA (`AI_PROVIDER`, `AI_TIMEOUT_SECONDS`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, `AI_AUDIO_PROVIDER`, etc.).
 - `[VERIFIED: docker-compose.yml:71-76]`: Inyecta las variables de entorno de IA al contenedor de la aplicación.
 - `[VERIFIED: docs/INTEGRATIONS.md:103-114]`: Documenta la integración de proveedores multimodales y los límites actuales de timeout y tamaño de archivos.
-- `[VERIFIED: docs/ADR-001-AI-PROVIDER-ABSTRACTION.md:73-81]`: Documenta el patrón de abstracción de proveedores de IA y la intención original de desacoplamiento de vendors.
+- `[VERIFIED: docs/adr/ADR-001-AI-PROVIDER-ABSTRACTION.md:73-81]`: Documenta el patrón de abstracción de proveedores de IA y la intención original de desacoplamiento de vendors.
 
 ### Supuestos e Inferencias (`[INFERRED]`)
 - `[INFERRED]`: Resilience4j (mediante `resilience4j-spring-boot3` o adaptador equivalente de resiliencia) es el estándar compatible para gestionar el ciclo de vida del Circuit Breaker y Retry sin acoplamiento no deseado, integrándose nativamente con Micrometer y Actuator.
 - `[INFERRED]`: Las capacidades `rag` y `vision` compartirán el mismo esquema de metadatos de configuración de fallback que `chat`, aunque sus modelos específicos difieran según disponibilidad del proveedor.
 
-### Decisiones de Producto y Negocio Pendientes
-- `[NEEDS CLARIFICATION: Formato de parsing de variables de entorno compactas vs Spring standard relaxed binding]`
-  - *Contexto*: El requerimiento del issue ejemplifica la variable compacta `AI_CHAT_FALLBACK_CHAIN=gemini:gemini-3.8-flash,openai:gpt-...`. Spring Boot soporta nativamente binding indexado `APP_AI_FALLBACK_CHAT_CHAIN_0_PROVIDER=gemini`.
-  - *Opciones propuestas*:
-    - **Opción A (Recomendada)**: Implementar soporte dual: un conversor/parser específico para cadenas compactas separadas por comas (`provider:model`) y compatibilidad con el relaxed binding estándar de Spring Boot para listas estructuradas.
-    - **Opción B**: Soportar únicamente el binding estándar de Spring Boot indexado (`APP_AI_FALLBACK_CHAT_CHAIN_0_*`), simplificando el parser pero requiriendo variables más verbosas en despliegues.
-- `[NEEDS CLARIFICATION: Estrategia de exposición en Actuator Health vs Endpoint Administrativo]`
-  - *Contexto*: El requerimiento menciona `/actuator/health` o `GET /api/admin/ai/providers`.
-  - *Opciones propuestas*:
-    - **Opción A (Recomendada)**: Endpoint REST administrativo `GET /api/admin/ai/providers` protegido con `@PreAuthorize("hasRole('ADMIN')")` que entrega detalles completos de modelos y circuitos, más un `HealthIndicator` sintético en `/actuator/health` (o grupo `/actuator/health/ai`) que expone únicamente estado agregado (`UP`/`DEGRADED`) sin revelar información de configuración interna a clientes anónimos.
-    - **Opción B**: Exclusivamente endpoint REST administrativo `GET /api/admin/ai/providers` bajo `ROLE_ADMIN`, sin modificar `/actuator/health`.
-    - **Opción C**: Exponer toda la información en `/actuator/health` asegurando dicho endpoint a nivel de Spring Security para requerir `ROLE_ADMIN`.
-- `[NEEDS CLARIFICATION: Política de degradación ante agotamiento de toda la cadena de proveedores]`
-  - *Contexto*: Cuando todos los proveedores de una capacidad fallan o tienen su circuito en estado ABIERTO (`OPEN`).
-  - *Opciones propuestas*:
-    - **Opción A (Recomendada)**: Lanzar `AiProviderException` tipada con `ErrorType.UNAVAILABLE`, traduciéndose en una respuesta HTTP 503 (Service Unavailable) con código de error comprensible para el cliente frontend.
-    - **Opción B**: Retornar una respuesta heurística / mock por defecto (degradación suave en la interfaz) para no interrumpir completamente la experiencia del usuario.
+### Decisiones de Producto y Negocio
+
+Decididas el 2026-11-09:
+
+- **Estructura**: segunda entrega de la épica HU-27/HU-28 (ver HU-27). Depende del mecanismo de HU-27.
+- **Agotamiento de la cadena**: **503 sin mock** (antes opción B de esta spec, descartada). La opción de devolver una respuesta heurística o mock por defecto **queda prohibida**: enmascara fallos de infraestructura y contradice HU-26 FR-009 y HU-27 FR-006.
+- **Implementación del circuit breaker**: Resilience4j (`resilience4j-spring-boot3`), integrado con Micrometer.
+
+Pendiente de confirmar (se aplica la opción recomendada hasta que se indique lo contrario):
+
+- `[NEEDS CLARIFICATION: Formato de variables de entorno]` Recomendada la opción A: soporte dual (cadena compacta `provider:model,provider:model` y relaxed binding estándar de Spring). Los ejemplos de documentación DEBEN usar nombres de modelo ficticios o tomados de la documentación vigente del proveedor; no se afirma que un nombre de modelo exista sin verificarlo.
+- `[NEEDS CLARIFICATION: Exposición de estado]` Recomendada la opción A: `GET /api/admin/ai/providers` (solo `ROLE_ADMIN`) con detalle completo, más un `HealthIndicator` agregado (`UP`/`DEGRADED`) sin configuración interna.
 
 ---
 

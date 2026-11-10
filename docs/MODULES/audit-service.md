@@ -41,18 +41,18 @@ The microservice consists of two autonomous applications:
 ## 2. Backend Component (`audit-service/backend/`)
 
 - **Root Directory**: `audit-service/backend/`
-- **Main Class Entry Point**: [AuditServiceApplication.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/AuditServiceApplication.java)
-- **Configuration File**: [application.yml](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/resources/application.yml)
+- **Main Class Entry Point**: [AuditServiceApplication.java](../../audit-service/backend/src/main/java/com/riwi/audit/AuditServiceApplication.java)
+- **Configuration File**: [application.yml](../../audit-service/backend/src/main/resources/application.yml)
 - **Tech Stack**: Java 21, Spring Boot 3.5.6, Spring Data MongoDB, Spring Kafka.
 
 ### Key Backend Classes:
-- [KafkaAuditConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java):
+- [KafkaAuditConsumer.java](../../audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java):
   - Subscribes to `${app.kafka.topic.booking-events}` (`booking-events`) using consumer group `audit-service-group`.
   - Deserializes messages into `BusinessEvent` and persists them immediately via `AuditEventRepository`.
-- [AuditMongoInitializer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/config/AuditMongoInitializer.java):
+- [AuditMongoInitializer.java](../../audit-service/backend/src/main/java/com/riwi/audit/config/AuditMongoInitializer.java):
   - An `ApplicationRunner` that version-controls MongoDB schema and index initialization (simulating Flyway for non-relational storage).
   - Creates the `audit_events` collection and sets compound indexes on `occurredAt` (descending) and `eventType`.
-- [AuditController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/controller/AuditController.java):
+- [AuditController.java](../../audit-service/backend/src/main/java/com/riwi/audit/controller/AuditController.java):
   - `GET /api/audit/events`: Returns the chronological list of recorded business and security events.
   - `GET /api/audit/events/{eventId}`: Fetches details for a single event.
   - `GET /api/audit/stats`: Aggregates counts for total events, `BookingCreated`, `BookingCancelled`, etc.
@@ -62,14 +62,14 @@ The microservice consists of two autonomous applications:
 ## 3. Frontend Component (`audit-service/frontend/`)
 
 - **Root Directory**: `audit-service/frontend/`
-- **Application Bootstrap**: [audit-service/frontend/src/main.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/frontend/src/main.ts)
+- **Application Bootstrap**: [audit-service/frontend/src/main.ts](../../audit-service/frontend/src/main.ts)
 - **Tech Stack**: Angular 20, TypeScript 5.9, Tailwind CSS v4.
 
 ### Key Frontend Features:
 - **Admin Dashboard**: Live event feed polling `/api/audit/events` every 10 seconds.
 - **Filtering**: Filters by event type, action, actor, resource ID, or correlation ID.
 - **Payload Inspection Modal**: Displays full JSON payload and metadata for audit trails.
-- **Auth Interceptor ([auth.interceptor.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/frontend/src/app/auth.interceptor.ts))**:
+- **Auth Interceptor ([auth.interceptor.ts](../../audit-service/frontend/src/app/auth.interceptor.ts))**:
   - Tries to read `skillbridge_token` from `localStorage` and attach it as `Authorization: Bearer <token>`. *(Note: See Known Discrepancies below)*.
 
 ---
@@ -80,7 +80,7 @@ The microservice consists of two autonomous applications:
 |---|---|---|
 | `PORT` | `8081` | HTTP port for Audit Backend |
 | `AUDIT_MONGO_URI` | `mongodb://localhost:27017/audit` | Connection string to MongoDB instance |
-| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker bootstrap address |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker bootstrap address (`kafka:29092` inside Docker Compose) |
 | `KAFKA_CONSUMER_GROUP` | `audit-service-group` | Consumer group identifier |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:8090,http://localhost:4200` | Allowed origins for Audit REST API |
 
@@ -104,12 +104,12 @@ The microservice consists of two autonomous applications:
 ## 6. Concrete Files to Inspect Before Modifying
 
 - **Backend Logic / Ingestion**:
-  - Consumer: [KafkaAuditConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java)
-  - Event Model: [BusinessEvent.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/model/BusinessEvent.java)
-  - Repository: [AuditEventRepository.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/repository/AuditEventRepository.java)
+  - Consumer: [KafkaAuditConsumer.java](../../audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java)
+  - Event Model: [BusinessEvent.java](../../audit-service/backend/src/main/java/com/riwi/audit/model/BusinessEvent.java)
+  - Repository: [AuditEventRepository.java](../../audit-service/backend/src/main/java/com/riwi/audit/repository/AuditEventRepository.java)
 - **Frontend Dashboard / State**:
-  - Service: [audit.service.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/frontend/src/app/audit.service.ts)
-  - Dashboard Component: [audit-service/frontend/src/app/dashboard/](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/frontend/src/app/dashboard/)
+  - Service: [audit.service.ts](../../audit-service/frontend/src/app/audit.service.ts)
+  - Dashboard Component: [audit-service/frontend/src/app/dashboard/](../../audit-service/frontend/src/app/dashboard)
 
 ---
 
@@ -125,3 +125,27 @@ cd audit-service/frontend
 npm ci
 npm test -- --watch=false --browsers=ChromeHeadless
 ```
+
+---
+
+## 8. Running the Audit Service
+
+The audit service is part of the main `docker-compose.yml`. Start it with the rest of the infrastructure:
+
+```bash
+docker compose up -d audit-backend audit-frontend
+```
+
+To run only the frontend locally:
+
+```bash
+cd audit-service/frontend
+npm install
+npm start
+```
+
+Once running:
+- **Backend API**: <http://localhost:8081>
+- **Frontend Dashboard**: <http://localhost:8090> (or <http://localhost:4200> when started with `npm start`)
+
+Inside Docker the service reaches Kafka at `kafka:29092` (`KAFKA_BOOTSTRAP_SERVERS`) and joins the `audit-service-group` consumer group.

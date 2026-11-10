@@ -54,7 +54,7 @@ cd audit-service/frontend && npm test -- --watch=false
 | Application services & use cases | `docs/architecture/overview.md`, `docs/CONTRIBUTING.md` | `backend/src/main/java/com/riwi/skillbridge/application/service/`, `backend/src/main/java/com/riwi/skillbridge/application/port/` |
 | Pure domain logic, models, rules | `docs/architecture/overview.md` | `backend/src/main/java/com/riwi/skillbridge/domain/` |
 | Persistence, JPA & Flyway migrations | `docs/MODULES/backend.md` | `backend/src/main/resources/db/migration/`, `backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/` |
-| AI, Multimodal, Audio, Vision | `docs/INTEGRATIONS.md`, `docs/ADR-001-AI-PROVIDER-ABSTRACTION.md` | `backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/ai/`, `backend/src/main/java/com/riwi/skillbridge/application/port/out/` |
+| AI, Multimodal, Audio, Vision | `docs/INTEGRATIONS.md`, `docs/adr/ADR-001-AI-PROVIDER-ABSTRACTION.md` | `backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/ai/`, `backend/src/main/java/com/riwi/skillbridge/application/port/out/` |
 | Asynchronous events (Kafka/Rabbit) | `docs/INTEGRATIONS.md`, `docs/adr/0003-kafka-event-topic-unification.md` | `backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/`, `backend/src/main/java/com/riwi/skillbridge/infrastructure/config/` |
 | Payments & Stripe integration | `docs/INTEGRATIONS.md`, `docs/MODULES/backend.md` | `backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/`, `backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/` |
 | Frontend feature views & routing | `docs/MODULES/frontend.md` | `frontend/src/app/features/`, `frontend/src/app/guards/` |

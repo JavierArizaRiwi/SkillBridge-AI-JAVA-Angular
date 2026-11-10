@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
  * cambio de esquema/índices se agrega como un nuevo método versionado en esta
  * clase (V1, V2, ...), documentado con un comentario, simulando el historial de
  * migraciones de Flyway sin añadir una librería extra (decisión explícita del
- * equipo: ver docs/BACKLOG.md y la bitácora de Obsidian del proyecto).</p>
+ * equipo: ver docs/course/BACKLOG.md y la bitácora de Obsidian del proyecto).</p>
  *
  * <p>Se ejecuta con {@link ApplicationRunner} (no {@code @PostConstruct}) para
  * garantizar que el {@link MongoTemplate}/driver ya esté completamente

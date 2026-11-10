@@ -25,28 +25,28 @@ The backend tests are segregated according to Hexagonal architecture layers:
 1. **Domain Unit Tests (Zero Framework, In-Memory)**:
    - Location: `backend/src/test/java/com/riwi/skillbridge/domain/`
    - Key Suites:
-     - [BookingTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/domain/model/BookingTest.java): Tests domain model invariants, status transitions, and validations.
-     - [BookingCancellationPolicyTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/domain/service/BookingCancellationPolicyTest.java): Tests 24-hour advance cancellation policy.
-     - [OfferingAccessPolicyTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/domain/policy/OfferingAccessPolicyTest.java): Tests provider offering ownership rules.
-     - [UserManagementPolicyTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/domain/policy/UserManagementPolicyTest.java): Tests role changes and status rules.
+     - [BookingTest.java](../backend/src/test/java/com/riwi/skillbridge/domain/model/BookingTest.java): Tests domain model invariants, status transitions, and validations.
+     - [BookingCancellationPolicyTest.java](../backend/src/test/java/com/riwi/skillbridge/domain/service/BookingCancellationPolicyTest.java): Tests 24-hour advance cancellation policy.
+     - [OfferingAccessPolicyTest.java](../backend/src/test/java/com/riwi/skillbridge/domain/policy/OfferingAccessPolicyTest.java): Tests provider offering ownership rules.
+     - [UserManagementPolicyTest.java](../backend/src/test/java/com/riwi/skillbridge/domain/policy/UserManagementPolicyTest.java): Tests role changes and status rules.
 
 2. **Application Service Tests (Mockito-Mocked Boundaries)**:
    - Location: `backend/src/test/java/com/riwi/skillbridge/application/service/`
    - Key Suites:
-     - [BookingServiceTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/application/service/BookingServiceTest.java): Tests booking orchestration, idempotency checks, and event publication.
-     - [OfferingCacheConsistencyTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/application/service/OfferingCacheConsistencyTest.java): Tests that write operations evict or update the Redis catalog cache.
-     - [AiRecommendationServiceTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/application/service/AiRecommendationServiceTest.java): Tests catalog prompt construction and LLM response parsing.
-     - [PaymentAuthorizationServiceTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/application/service/PaymentAuthorizationServiceTest.java): Tests idempotent payment processing and event emission.
+     - [BookingServiceTest.java](../backend/src/test/java/com/riwi/skillbridge/application/service/BookingServiceTest.java): Tests booking orchestration, idempotency checks, and event publication.
+     - [OfferingCacheConsistencyTest.java](../backend/src/test/java/com/riwi/skillbridge/application/service/OfferingCacheConsistencyTest.java): Tests that write operations evict or update the Redis catalog cache.
+     - [AiRecommendationServiceTest.java](../backend/src/test/java/com/riwi/skillbridge/application/service/AiRecommendationServiceTest.java): Tests catalog prompt construction and LLM response parsing.
+     - [PaymentAuthorizationServiceTest.java](../backend/src/test/java/com/riwi/skillbridge/application/service/PaymentAuthorizationServiceTest.java): Tests idempotent payment processing and event emission.
 
 3. **Inbound Web Slice Tests (`@WebMvcTest`)**:
    - Location: `backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/`
    - Key Suites:
-     - [BookingControllerSecurityTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/BookingControllerSecurityTest.java): Tests RBAC and route protection.
-     - [OfferingSecurityTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/OfferingSecurityTest.java): Tests public vs provider permissions.
-     - [StripeWebhookControllerTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/webhook/StripeWebhookControllerTest.java): Tests HMAC signature header validation.
+     - [BookingControllerSecurityTest.java](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/BookingControllerSecurityTest.java): Tests RBAC and route protection.
+     - [OfferingSecurityTest.java](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/OfferingSecurityTest.java): Tests public vs provider permissions.
+     - [StripeWebhookControllerTest.java](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/webhook/StripeWebhookControllerTest.java): Tests HMAC signature header validation.
 
 4. **Integration Tests (`*IT.java` via Maven Failsafe)**:
-   - [BookingCancellationIT.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/BookingCancellationIT.java): Full flow testing of booking cancellation using Testcontainers PostgreSQL.
+   - [BookingCancellationIT.java](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/BookingCancellationIT.java): Full flow testing of booking cancellation using Testcontainers PostgreSQL.
 
 ---
 
@@ -55,7 +55,7 @@ The backend tests are segregated according to Hexagonal architecture layers:
 Running certain test suites requires the host system to have an operational Docker daemon:
 - **Image dependencies**: `postgres:17-alpine`, `rabbitmq:4-management-alpine`.
 - **Known Issue with `BookingPersistenceAdapterTest` (`QA-006`)**:
-  - [BookingPersistenceAdapterTest.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/BookingPersistenceAdapterTest.java) uses `@Testcontainers` with PostgreSQL.
+  - [BookingPersistenceAdapterTest.java](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/BookingPersistenceAdapterTest.java) uses `@Testcontainers` with PostgreSQL.
   - Because it ends with `*Test.java` rather than `*IT.java`, it is executed by the Maven Surefire plugin during the `mvn test` phase. If Docker is not running locally, `mvn test` will fail.
 
 ---
@@ -64,7 +64,7 @@ Running certain test suites requires the host system to have an operational Dock
 
 Two tests in the backend are explicitly disabled in source code:
 
-1. **[JpaOfferingRepositoryTest.java#L16](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/JpaOfferingRepositoryTest.java#L16)**:
+1. **[JpaOfferingRepositoryTest.java#L16](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/JpaOfferingRepositoryTest.java#L16)**:
    ```java
    @org.junit.jupiter.api.Disabled("Docker Bug Testcontainers")
    @Testcontainers
@@ -73,7 +73,7 @@ Two tests in the backend are explicitly disabled in source code:
    ```
    *Reason*: Marked with `"Docker Bug Testcontainers"`. Silences PostgreSQL repository verification.
 
-2. **[NotificationFlowIT.java#L56](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/messaging/NotificationFlowIT.java#L56)**:
+2. **[NotificationFlowIT.java#L56](../backend/src/test/java/com/riwi/skillbridge/infrastructure/adapter/in/messaging/NotificationFlowIT.java#L56)**:
    ```java
    @org.junit.jupiter.api.Disabled("Docker Bug Testcontainers")
    @Testcontainers

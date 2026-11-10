@@ -7,8 +7,8 @@ The Core Backend is a Spring Boot application structured following Hexagonal Arc
 ## 1. Module Overview & Entry Points
 
 - **Root Directory**: `backend/`
-- **Main Class Entry Point**: [SkillBridgeApplication.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/SkillBridgeApplication.java)
-- **Primary Configuration**: [application.yml](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml)
+- **Main Class Entry Point**: [SkillBridgeApplication.java](../../backend/src/main/java/com/riwi/skillbridge/SkillBridgeApplication.java)
+- **Primary Configuration**: [application.yml](../../backend/src/main/resources/application.yml)
 - **Runtime Environment**: Java 21 (Temurin), Spring Boot 3.5.6, Maven 3.9+.
 
 ---
@@ -50,30 +50,30 @@ backend/src/main/java/com/riwi/skillbridge/
 ## 3. Important Classes & Components
 
 ### 3.1. Inbound Adapters (REST Controllers)
-- [BookingController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/BookingController.java): Manages booking creation (`POST /api/bookings`) with idempotency and cancellation (`PATCH /api/bookings/{id}/cancel`).
-- [OfferingController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/OfferingController.java): Public catalog query (`GET /api/offerings`), provider offering mutations (`POST`, `PUT`, `activate`, `deactivate`).
-- [CategoryController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/CategoryController.java): Category listing and management.
-- [AiController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/AiController.java): Recommendations via text, voice (`/voice`), image (`/image`), and speech synthesis (`/tts`).
-- [PaymentController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/PaymentController.java): Authorizes payments using idempotent payment commands.
-- [StripeWebhookController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/webhook/StripeWebhookController.java): Verifies cryptographic Stripe signatures and handles webhook events.
-- [AdminUserController.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/AdminUserController.java): Admin-only user role and status modifications (`ACTIVE` / `SUSPENDED`).
+- [BookingController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/BookingController.java): Manages booking creation (`POST /api/bookings`) with idempotency and cancellation (`PATCH /api/bookings/{id}/cancel`).
+- [OfferingController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/OfferingController.java): Public catalog query (`GET /api/offerings`), provider offering mutations (`POST`, `PUT`, `activate`, `deactivate`).
+- [CategoryController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/CategoryController.java): Category listing and management.
+- [AiController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/AiController.java): Recommendations via text, voice (`/voice`), image (`/image`), and speech synthesis (`/tts`).
+- [PaymentController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/PaymentController.java): Authorizes payments using idempotent payment commands.
+- [StripeWebhookController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/webhook/StripeWebhookController.java): Verifies cryptographic Stripe signatures and handles webhook events.
+- [AdminUserController.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/AdminUserController.java): Admin-only user role and status modifications (`ACTIVE` / `SUSPENDED`).
 
 ### 3.2. Application Services
-- [BookingService.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/application/service/BookingService.java): Coordinates booking creation, cancellation rules, status updates, and event emission.
-- [OfferingCommandService.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/application/service/OfferingCommandService.java) & [OfferingQueryService.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/application/service/OfferingQueryService.java): Manage offerings and invalidate Redis catalog caches.
-- [AiRecommendationService.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/application/service/AiRecommendationService.java): Coordinates speech transcription, vision parsing, and catalog-grounded LLM inference.
+- [BookingService.java](../../backend/src/main/java/com/riwi/skillbridge/application/service/BookingService.java): Coordinates booking creation, cancellation rules, status updates, and event emission.
+- [OfferingCommandService.java](../../backend/src/main/java/com/riwi/skillbridge/application/service/OfferingCommandService.java) & [OfferingQueryService.java](../../backend/src/main/java/com/riwi/skillbridge/application/service/OfferingQueryService.java): Manage offerings and invalidate Redis catalog caches.
+- [AiRecommendationService.java](../../backend/src/main/java/com/riwi/skillbridge/application/service/AiRecommendationService.java): Coordinates speech transcription, vision parsing, and catalog-grounded LLM inference.
 
 ### 3.3. Outbound Adapters
-- [BookingPersistenceAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/BookingPersistenceAdapter.java): Translates between domain `Booking` and JPA `BookingEntity`.
-- [RedisOfferingCacheAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/cache/RedisOfferingCacheAdapter.java): Serializes/deserializes offering lists in Redis.
-- [StripePaymentAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/stripe/StripePaymentAdapter.java): Calls Stripe API via OpenFeign to create PaymentIntents.
-- [KafkaBookingEventPublisher.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/KafkaBookingEventPublisher.java): Publishes business events to Kafka topic `booking-events`.
+- [BookingPersistenceAdapter.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/persistence/BookingPersistenceAdapter.java): Translates between domain `Booking` and JPA `BookingEntity`.
+- [RedisOfferingCacheAdapter.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/cache/RedisOfferingCacheAdapter.java): Serializes/deserializes offering lists in Redis.
+- [StripePaymentAdapter.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/payment/stripe/StripePaymentAdapter.java): Calls Stripe API via OpenFeign to create PaymentIntents.
+- [KafkaBookingEventPublisher.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/KafkaBookingEventPublisher.java): Publishes business events to Kafka topic `booking-events`.
 
 ---
 
 ## 4. Configuration Keys & Environment Variables
 
-Key settings configured in [backend/src/main/resources/application.yml](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml):
+Key settings configured in [backend/src/main/resources/application.yml](../../backend/src/main/resources/application.yml):
 
 | Configuration Key | Env Variable Override | Default Value | Description |
 |---|---|---|---|

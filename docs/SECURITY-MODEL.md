@@ -8,11 +8,11 @@ This document outlines the authentication architecture, authorization controls, 
 
 - **Paradigm**: Stateless JWT (JSON Web Token) using HMAC-SHA256 (`io.jsonwebtoken:jjwt`).
 - **Token Delivery Mechanism**:
-  - Primary: HttpOnly, Secure, SameSite=None cookie named `access_token` ([SecurityConfiguration.java:40-44](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L40-L44)).
-  - Fallback: Standard `Authorization: Bearer <token>` HTTP header handled by [JwtAuthenticationFilter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/security/JwtAuthenticationFilter.java).
+  - Primary: HttpOnly, Secure, SameSite=None cookie named `access_token` ([SecurityConfiguration.java:40-44](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L40-L44)).
+  - Fallback: Standard `Authorization: Bearer <token>` HTTP header handled by [JwtAuthenticationFilter.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/security/JwtAuthenticationFilter.java).
 - **Token Lifetime**: 120 minutes (`app.jwt.expiration-minutes: 120`).
 - **Session Validation**: Frontend boots up by sending `GET /api/auth/me` with credentials to verify session validity.
-- **Passwords**: Hashed with `BCryptPasswordEncoder` (cost factor 10) via [SpringPasswordHasherAdapter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/security/SpringPasswordHasherAdapter.java).
+- **Passwords**: Hashed with `BCryptPasswordEncoder` (cost factor 10) via [SpringPasswordHasherAdapter.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/security/SpringPasswordHasherAdapter.java).
 
 ---
 
@@ -50,7 +50,7 @@ Spring Security 6 method security is active via `@EnableMethodSecurity`.
 ## 3. CSRF & CORS Defense
 
 - **CSRF Strategy**:
-  - Implemented via `CookieCsrfTokenRepository.withHttpOnlyFalse()` ([SecurityConfiguration.java:41](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L41)).
+  - Implemented via `CookieCsrfTokenRepository.withHttpOnlyFalse()` ([SecurityConfiguration.java:41](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L41)).
   - Angular receives cookie `XSRF-TOKEN` and returns header `X-XSRF-TOKEN`.
   - Exemptions: Bearer-authenticated requests and endpoints listed in `.ignoringRequestMatchers("/api/auth/login", "/api/auth/register", "/api/auth/logout", "/api/webhooks/**")`.
 - **CORS Strategy**:
@@ -62,19 +62,19 @@ Spring Security 6 method security is active via `@EnableMethodSecurity`.
 
 ## 4. Threat Assessment & Vulnerability Registry
 
-The following findings were verified during formal security code audit ([docs/audit/evidence/02-security-review.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/audit/evidence/02-security-review.md)):
+The following findings were verified during formal security code audit ([docs/audit/evidence/02-security-review.md](audit/evidence/02-security-review.md)):
 
 | ID | Vulnerability / Threat | Severity | Status | Verified Evidence & Location |
 |---|---|---|---|---|
-| **SEC-001** | User enumeration via divergent HTTP status codes on login (401 vs 422 vs 403). | Medium | CONFIRMED | [AuthService.java:55-65](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/application/service/AuthService.java#L55-L65) |
-| **SEC-002** | Weak default JWT secret hardcoded in `application.yml`. | High | CONFIRMED in code / HYPOTHESIS in prod | [application.yml:123](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/resources/application.yml#L123) |
-| **SEC-003** | **BOLA / IDOR in Payment Authorization**: Any authenticated user can authorize payments on arbitrary `bookingId`s without ownership verification. | High | CONFIRMED | [PaymentController.java:21-35](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/PaymentController.java#L21-L35) |
-| **SEC-004** | **Unauthenticated Audit Service**: `audit-service/backend` exposes all audit events and metrics without Spring Security or auth filters on port 8081. | High | CONFIRMED | [AuditController.java:18-50](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/controller/AuditController.java#L18-L50) |
-| **SEC-005** | Excessive Category Permissions: Providers are permitted to delete global categories (`DELETE /api/categories/{id}`). | Medium | CONFIRMED | [CategoryController.java:61](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/CategoryController.java#L61) |
-| **SEC-006A** | Logout CSRF: `/api/auth/logout` ignores CSRF checks while using cookie-based auth. | Medium | CONFIRMED | [SecurityConfiguration.java:74](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L74) |
-| **SEC-007** | Catalog Exposure Inconsistency: `GET /api/categories` requires auth while `GET /api/offerings` is public. | Low | CONFIRMED | [SecurityConfiguration.java:87-90](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L87-L90) |
-| **SEC-008** | Lack of JWT Blacklisting / Revocation upon voluntary logout. | Medium | CONFIRMED | [JwtService.java:44](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/security/JwtService.java#L44) |
-| **SEC-009** | Cardholder PAN / CVV in Application DTOs: `PaymentRequestDto` takes raw card numbers in transit. | Medium | CONFIRMED (PCI Scope) | [PaymentRequestDto.java:6-12](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/dto/payment/PaymentRequestDto.java#L6-L12) |
-| **SEC-010** | Absence of Rate Limiting on authentication and AI endpoints. | Medium | CONFIRMED | [AiController.java:48-72](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/AiController.java#L48-L72) |
+| **SEC-001** | User enumeration via divergent HTTP status codes on login (401 vs 422 vs 403). | Medium | CONFIRMED | [AuthService.java:55-65](../backend/src/main/java/com/riwi/skillbridge/application/service/AuthService.java#L55-L65) |
+| **SEC-002** | Weak default JWT secret hardcoded in `application.yml`. | High | CONFIRMED in code / HYPOTHESIS in prod | [application.yml:123](../backend/src/main/resources/application.yml#L123) |
+| **SEC-003** | **BOLA / IDOR in Payment Authorization**: Any authenticated user can authorize payments on arbitrary `bookingId`s without ownership verification. | High | CONFIRMED | [PaymentController.java:21-35](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/PaymentController.java#L21-L35) |
+| **SEC-004** | **Unauthenticated Audit Service**: `audit-service/backend` exposes all audit events and metrics without Spring Security or auth filters on port 8081. | High | CONFIRMED | [AuditController.java:18-50](../audit-service/backend/src/main/java/com/riwi/audit/controller/AuditController.java#L18-L50) |
+| **SEC-005** | Excessive Category Permissions: Providers are permitted to delete global categories (`DELETE /api/categories/{id}`). | Medium | CONFIRMED | [CategoryController.java:61](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/CategoryController.java#L61) |
+| **SEC-006A** | Logout CSRF: `/api/auth/logout` ignores CSRF checks while using cookie-based auth. | Medium | CONFIRMED | [SecurityConfiguration.java:74](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L74) |
+| **SEC-007** | Catalog Exposure Inconsistency: `GET /api/categories` requires auth while `GET /api/offerings` is public. | Low | CONFIRMED | [SecurityConfiguration.java:87-90](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L87-L90) |
+| **SEC-008** | Lack of JWT Blacklisting / Revocation upon voluntary logout. | Medium | CONFIRMED | [JwtService.java:44](../backend/src/main/java/com/riwi/skillbridge/infrastructure/security/JwtService.java#L44) |
+| **SEC-009** | Cardholder PAN / CVV in Application DTOs: `PaymentRequestDto` takes raw card numbers in transit. | Medium | CONFIRMED (PCI Scope) | [PaymentRequestDto.java:6-12](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/dto/payment/PaymentRequestDto.java#L6-L12) |
+| **SEC-010** | Absence of Rate Limiting on authentication and AI endpoints. | Medium | CONFIRMED | [AiController.java:48-72](../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/AiController.java#L48-L72) |
 
-For remediations and verification tests, see the canonical [docs/RISK-REGISTER.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/RISK-REGISTER.md).
+For remediations and verification tests, see the canonical [docs/RISK-REGISTER.md](RISK-REGISTER.md).
