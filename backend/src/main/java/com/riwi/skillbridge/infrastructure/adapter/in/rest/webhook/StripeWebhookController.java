@@ -1,6 +1,7 @@
 package com.riwi.skillbridge.infrastructure.adapter.in.rest.webhook;
 
 import com.riwi.skillbridge.application.port.out.PaymentEventPublisherPort;
+import com.riwi.skillbridge.application.service.PaymentApprovedAssembler;
 import com.riwi.skillbridge.domain.event.PaymentApproved;
 import com.riwi.skillbridge.domain.event.PaymentRejected;
 import com.stripe.exception.SignatureVerificationException;
@@ -30,12 +31,15 @@ public class StripeWebhookController {
     private static final Logger log = LoggerFactory.getLogger(StripeWebhookController.class);
 
     private final PaymentEventPublisherPort paymentEventPublisherPort;
+    private final PaymentApprovedAssembler approvedAssembler;
     private final String webhookSecret;
 
     public StripeWebhookController(
             PaymentEventPublisherPort paymentEventPublisherPort,
+            PaymentApprovedAssembler approvedAssembler,
             @Value("${stripe.webhook-secret:}") String webhookSecret) {
         this.paymentEventPublisherPort = paymentEventPublisherPort;
+        this.approvedAssembler = approvedAssembler;
         this.webhookSecret = webhookSecret;
     }
 
@@ -104,7 +108,8 @@ public class StripeWebhookController {
             case "payment_intent.succeeded" -> {
                 log.info("Payment succeeded for bookingId={} (Stripe PaymentIntent={}). Emitting PaymentApproved event.",
                         bookingId, paymentIntent.getId());
-                paymentEventPublisherPort.publishApproved(new PaymentApproved(bookingId));
+                // El webhook de Stripe no aporta un UUID de pago propio: paymentId = null.
+                paymentEventPublisherPort.publishApproved(approvedAssembler.assemble(bookingId, null));
             }
             case "payment_intent.payment_failed" -> {
                 String reason = paymentIntent.getLastPaymentError() != null && paymentIntent.getLastPaymentError().getMessage() != null
