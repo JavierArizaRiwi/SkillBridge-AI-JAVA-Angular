@@ -15,7 +15,7 @@ All coding agents (including Claude Code, Antigravity, OpenAI Codex, and Cursor)
 - **Frontend Reactive Conventions**:
   - Angular 20 standalone components using Signals (`signal`, `computed`).
   - Tailwind CSS v4 for utility-first styling.
-  - Environment variables injected dynamically at runtime via `public/env.js` and `apiBase()` ([frontend/src/app/core/api.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/api.ts)).
+  - Environment variables injected dynamically at runtime via `public/env.js` and `apiBase()` ([frontend/src/app/core/api.ts](frontend/src/app/core/api.ts)).
 - **Audit Microservice Separation**:
   - `audit-service/` is decoupled from `backend/`. It contains its own Maven build and Angular app. Do not introduce compile-time dependencies between `backend/` and `audit-service/`.
 
@@ -66,19 +66,19 @@ All coding agents (including Claude Code, Antigravity, OpenAI Codex, and Cursor)
 
 Before beginning any task, select the relevant specialized documentation:
 
-- **Quick Start & Command Routing**: See [CLAUDE.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/CLAUDE.md).
-- **Product Overview & Workflows**: See [docs/PROJECT_CONTEXT.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/PROJECT_CONTEXT.md).
-- **Architecture & Event Topologies**: See [docs/architecture/overview.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/architecture/overview.md).
+- **Quick Start & Command Routing**: See [CLAUDE.md](CLAUDE.md).
+- **Product Overview & Workflows**: See [docs/PROJECT_CONTEXT.md](docs/PROJECT_CONTEXT.md).
+- **Architecture & Event Topologies**: See [docs/architecture/overview.md](docs/architecture/overview.md).
 - **Module Deep Dives**:
-  - Backend API: [docs/MODULES/backend.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/MODULES/backend.md)
-  - Frontend SPA: [docs/MODULES/frontend.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/MODULES/frontend.md)
-  - Audit Microservice: [docs/MODULES/audit-service.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/MODULES/audit-service.md)
+  - Backend API: [docs/MODULES/backend.md](docs/MODULES/backend.md)
+  - Frontend SPA: [docs/MODULES/frontend.md](docs/MODULES/frontend.md)
+  - Audit Microservice: [docs/MODULES/audit-service.md](docs/MODULES/audit-service.md)
 - **Operations, Testing & Integrations**:
-  - Testing Guide: [docs/TESTING.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/TESTING.md)
-  - External Integrations: [docs/INTEGRATIONS.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/INTEGRATIONS.md)
-  - Security & RBAC: [docs/SECURITY-MODEL.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/SECURITY-MODEL.md)
-- **Contributing & Adding Features**: See [docs/CONTRIBUTING.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/CONTRIBUTING.md).
-- **Known Vulnerabilities & Technical Debt**: See [docs/RISK-REGISTER.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/RISK-REGISTER.md).
+  - Testing Guide: [docs/TESTING.md](docs/TESTING.md)
+  - External Integrations: [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md)
+  - Security & RBAC: [docs/SECURITY-MODEL.md](docs/SECURITY-MODEL.md)
+- **Contributing & Adding Features**: See [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
+- **Known Vulnerabilities & Technical Debt**: See [docs/RISK-REGISTER.md](docs/RISK-REGISTER.md).
 
 ---
 

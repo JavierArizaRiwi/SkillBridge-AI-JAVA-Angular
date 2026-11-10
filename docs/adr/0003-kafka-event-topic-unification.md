@@ -11,7 +11,7 @@ Initially, architectural guidelines recommended separating event streaming into 
 1. `booking-events`: Dedicated strictly to core domain lifecycle events (`BookingCreated`, `BookingCancelled`).
 2. `audit-events`: Dedicated to user activity and security audits (`UserRegistered`, `UserLoggedIn`, `OfferingCreated`).
 
-However, the independent microservice [audit-service/backend/](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/) implements [KafkaAuditConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java) with a single listener binding:
+However, the independent microservice [audit-service/backend/](../../audit-service/backend) implements [KafkaAuditConsumer.java](../../audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java) with a single listener binding:
 ```java
 @KafkaListener(topics = "${app.kafka.topic.booking-events}", groupId = "${spring.kafka.consumer.group-id}")
 public void consume(BusinessEvent event) { ... }

@@ -7,10 +7,10 @@ The Web Frontend is a responsive Single-Page Application (SPA) built with Angula
 ## 1. Module Overview & Entry Points
 
 - **Root Directory**: `frontend/`
-- **Application Bootstrap**: [frontend/src/main.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/main.ts)
-- **Root Component**: [frontend/src/app/app.component.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/app.component.ts)
-- **Routing Configuration**: [frontend/src/app/app.routes.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/app.routes.ts)
-- **Styles Entry Point**: [frontend/src/styles.css](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/styles.css) (imports `@import "tailwindcss";`)
+- **Application Bootstrap**: [frontend/src/main.ts](../../frontend/src/main.ts)
+- **Root Component**: [frontend/src/app/app.component.ts](../../frontend/src/app/app.component.ts)
+- **Routing Configuration**: [frontend/src/app/app.routes.ts](../../frontend/src/app/app.routes.ts)
+- **Styles Entry Point**: [frontend/src/styles.css](../../frontend/src/styles.css) (imports `@import "tailwindcss";`)
 
 ---
 
@@ -54,19 +54,19 @@ frontend/src/
 ## 3. Important Services & Components
 
 ### 3.1. Core Services & State Management
-- [auth.service.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/auth.service.ts):
+- [auth.service.ts](../../frontend/src/app/core/auth.service.ts):
   - Manages reactive session state using Angular Signals (`signal<AuthResponse | null>`).
   - Provides derived computed state: `authenticated = computed(...)`, `role = computed(...)`.
   - Performs session verification on startup by calling `GET /api/auth/me`.
-- [auth.interceptor.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/auth.interceptor.ts):
+- [auth.interceptor.ts](../../frontend/src/app/core/auth.interceptor.ts):
   - Automatically attaches `withCredentials: true` to ensure the HttpOnly `access_token` cookie is transmitted.
   - Extracts the `XSRF-TOKEN` cookie and attaches the `X-XSRF-TOKEN` header to outgoing mutating HTTP requests.
-- [api.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/api.ts):
+- [api.ts](../../frontend/src/app/core/api.ts):
   - Encapsulates `apiBase()` which resolves `window.__env?.API_URL || '/api'`. Allows dynamic API URL swapping without recompiling Angular.
 
 ### 3.2. Routed Feature Views
-- [ai.component.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/features/ai.component.ts): Supports text chatting with the AI advisor, voice input (microphone recording submitted as `multipart/form-data` to `/voice`), image upload (`/image`), and playback of audio synthesized by ElevenLabs (`/tts`).
-- [payment-modal.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/features/payment-modal/payment-modal.ts): Integrates with `@stripe/stripe-js` to mount Stripe Card Elements and confirm payments using client secrets received from the backend.
+- [ai.component.ts](../../frontend/src/app/features/ai.component.ts): Supports text chatting with the AI advisor, voice input (microphone recording submitted as `multipart/form-data` to `/voice`), image upload (`/image`), and playback of audio synthesized by ElevenLabs (`/tts`).
+- [payment-modal.component.ts](../../frontend/src/app/features/payment-modal.component.ts): Integrates with `@stripe/stripe-js` to mount Stripe Card Elements and confirm payments using client secrets received from the backend.
 
 ---
 
@@ -75,22 +75,22 @@ frontend/src/
 In containerized and cloud deployments, environment variables are injected at startup rather than baked into compile-time bundles:
 1. `generate-env.mjs` runs during `prebuild` or container initialization.
 2. It generates `public/env.js`, defining `window.__env = { API_URL: "...", STRIPE_PUBLISHABLE_KEY: "..." }`.
-3. [index.html](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/index.html) loads `/env.js` before Angular bundles execute.
+3. [index.html](../../frontend/src/index.html) loads `/env.js` before Angular bundles execute.
 
 ---
 
 ## 5. Concrete Files to Inspect Before Modifying
 
 1. **Before modifying Navigation, Layout, or App Startup**:
-   - [app.component.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/app.component.ts)
-   - [app.routes.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/app.routes.ts)
+   - [app.component.ts](../../frontend/src/app/app.component.ts)
+   - [app.routes.ts](../../frontend/src/app/app.routes.ts)
 2. **Before modifying API Client Calls or Security Headers**:
-   - [auth.interceptor.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/auth.interceptor.ts)
-   - [auth.service.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/auth.service.ts)
-   - [api.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/api.ts)
+   - [auth.interceptor.ts](../../frontend/src/app/core/auth.interceptor.ts)
+   - [auth.service.ts](../../frontend/src/app/core/auth.service.ts)
+   - [api.ts](../../frontend/src/app/core/api.ts)
 3. **Before modifying Payment Flows**:
-   - [payment-modal.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/features/payment-modal/payment-modal.ts)
-   - [stripe.service.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/core/stripe.service.ts)
+   - [payment-modal.component.ts](../../frontend/src/app/features/payment-modal.component.ts)
+   - [stripe.service.ts](../../frontend/src/app/core/stripe.service.ts)
 
 ---
 

@@ -137,12 +137,12 @@ sequenceDiagram
 ```
 
 ### 3.2. Asynchronous Notification Flow (RabbitMQ)
-1. **Producer**: [RabbitNotificationPublisher.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/RabbitNotificationPublisher.java) sends messages to exchange `skillbridge.notifications` with routing key `notification.booking`.
-2. **Broker Configuration**: [RabbitConfiguration.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/config/RabbitConfiguration.java) sets up:
+1. **Producer**: [RabbitNotificationPublisher.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/messaging/RabbitNotificationPublisher.java) sends messages to exchange `skillbridge.notifications` with routing key `notification.booking`.
+2. **Broker Configuration**: [RabbitConfiguration.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/RabbitConfiguration.java) sets up:
    - Primary Queue: `skillbridge.notifications.queue` with DLX `skillbridge.notifications.dlx`.
    - Retry policy: 3 attempts with exponential backoff (initial 2s, multiplier 2.0, max 10s).
    - Dead Letter Queue: `skillbridge.notifications.dlq`.
-3. **Consumer**: [NotificationConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/messaging/NotificationConsumer.java) delegates processing to `NotificationService`, dispatching either simulated logs or transactional emails via [EmailNotificationSender.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/notification/EmailNotificationSender.java) to Mailpit.
+3. **Consumer**: [NotificationConsumer.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/messaging/NotificationConsumer.java) delegates processing to `NotificationService`, dispatching either simulated logs or transactional emails via [EmailNotificationSender.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/out/notification/EmailNotificationSender.java) to Mailpit.
 
 ### 3.3. Persistent Audit Event Streaming (Kafka)
 1. **Envelope Structure**: All Kafka messages encapsulate payloads in `BusinessEvent<T>` containing:
@@ -151,7 +151,7 @@ sequenceDiagram
    - `application.yml` configures:
      - `app.kafka.topic.booking-events: booking-events`
      - `app.kafka.topic.audit-events: booking-events`
-   - *Rationale*: [audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java) is compiled to listen strictly to `${app.kafka.topic.booking-events}`. Both business events (`BookingCreated`, `BookingCancelled`) and audit events (`UserLoggedIn`, `UserRegistered`, `OfferingCreated`) publish to this topic to ensure full capture.
+   - *Rationale*: [audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java](../../audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java) is compiled to listen strictly to `${app.kafka.topic.booking-events}`. Both business events (`BookingCreated`, `BookingCancelled`) and audit events (`UserLoggedIn`, `UserRegistered`, `OfferingCreated`) publish to this topic to ensure full capture.
 
 ---
 
@@ -161,14 +161,14 @@ sequenceDiagram
 |---|---|---|---|
 | **PostgreSQL 17** | Core Backend | Spring Data JPA / Hibernate (`ddl-auto: validate`) | Flyway migrations `V1__init.sql` through `V7__booking_idempotency.sql` in `backend/src/main/resources/db/migration/`. |
 | **Redis 8** | Core Backend | Spring Data Redis (`StringRedisTemplate` / Jackson serialization) | Cache-Aside pattern. Key `catalog::offerings` cached with 10-minute TTL. Evicted upon offering mutations. |
-| **MongoDB 7** | Audit Subsystem | Spring Data MongoDB (`MongoTemplate` / `AuditEventRepository`) | Programmatic migrations via [AuditMongoInitializer.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/config/AuditMongoInitializer.java) (`ApplicationRunner` creating collections and ascending/descending indexes). |
+| **MongoDB 7** | Audit Subsystem | Spring Data MongoDB (`MongoTemplate` / `AuditEventRepository`) | Programmatic migrations via [AuditMongoInitializer.java](../../audit-service/backend/src/main/java/com/riwi/audit/config/AuditMongoInitializer.java) (`ApplicationRunner` creating collections and ascending/descending indexes). |
 
 ---
 
 ## 5. Architectural Constraints & Invariants
 
 1. **Correlation ID Traceability**:
-   - Inbound HTTP filter [CorrelationIdFilter.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/filter/CorrelationIdFilter.java) captures or generates `X-Correlation-Id`, binding it to SLF4J MDC.
+   - Inbound HTTP filter [CorrelationIdFilter.java](../../backend/src/main/java/com/riwi/skillbridge/infrastructure/adapter/in/rest/filter/CorrelationIdFilter.java) captures or generates `X-Correlation-Id`, binding it to SLF4J MDC.
    - The correlation ID is propagated into RabbitMQ and Kafka message headers and domain event envelopes.
 2. **Idempotent State Changes**:
    - Mutating commands (`POST /api/bookings`, `POST /api/payments/authorize`) mandate the `Idempotency-Key` HTTP header.

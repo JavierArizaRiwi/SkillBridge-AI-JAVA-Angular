@@ -60,11 +60,11 @@ PostgreSQL 17 (Relational System of Record)
 
 ## 3. Technology Matrix & Entry Points
 
-- **Backend Entry Point**: [SkillBridgeApplication.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/backend/src/main/java/com/riwi/skillbridge/SkillBridgeApplication.java)
-- **Frontend Entry Point**: [frontend/src/main.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/main.ts), configured via [frontend/src/app/app.routes.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/frontend/src/app/app.routes.ts)
-- **Audit Backend Entry Point**: [AuditServiceApplication.java](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/AuditServiceApplication.java)
-- **Audit Frontend Entry Point**: [audit-service/frontend/src/main.ts](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/audit-service/frontend/src/main.ts)
-- **Orchestration**: [docker-compose.yml](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docker-compose.yml), [Makefile](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/Makefile)
+- **Backend Entry Point**: [SkillBridgeApplication.java](../backend/src/main/java/com/riwi/skillbridge/SkillBridgeApplication.java)
+- **Frontend Entry Point**: [frontend/src/main.ts](../frontend/src/main.ts), configured via [frontend/src/app/app.routes.ts](../frontend/src/app/app.routes.ts)
+- **Audit Backend Entry Point**: [AuditServiceApplication.java](../audit-service/backend/src/main/java/com/riwi/audit/AuditServiceApplication.java)
+- **Audit Frontend Entry Point**: [audit-service/frontend/src/main.ts](../audit-service/frontend/src/main.ts)
+- **Orchestration**: [docker-compose.yml](../docker-compose.yml), [Makefile](../Makefile)
 
 ---
 
@@ -101,13 +101,13 @@ PostgreSQL 17 (Relational System of Record)
 ## 5. Module Navigation Links
 
 For comprehensive module-specific guides, consult:
-- **Backend Architecture & Layers**: [docs/MODULES/backend.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/MODULES/backend.md)
-- **Frontend Architecture & Components**: [docs/MODULES/frontend.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/MODULES/frontend.md)
-- **Audit Microservice Architecture**: [docs/MODULES/audit-service.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/MODULES/audit-service.md)
-- **Testing & Quality Assurance**: [docs/TESTING.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/TESTING.md)
-- **External Integrations & Brokers**: [docs/INTEGRATIONS.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/INTEGRATIONS.md)
-- **Security & Authorization Model**: [docs/SECURITY-MODEL.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/SECURITY-MODEL.md)
-- **Contribution Guide**: [docs/CONTRIBUTING.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/CONTRIBUTING.md)
+- **Backend Architecture & Layers**: [docs/MODULES/backend.md](MODULES/backend.md)
+- **Frontend Architecture & Components**: [docs/MODULES/frontend.md](MODULES/frontend.md)
+- **Audit Microservice Architecture**: [docs/MODULES/audit-service.md](MODULES/audit-service.md)
+- **Testing & Quality Assurance**: [docs/TESTING.md](TESTING.md)
+- **External Integrations & Brokers**: [docs/INTEGRATIONS.md](INTEGRATIONS.md)
+- **Security & Authorization Model**: [docs/SECURITY-MODEL.md](SECURITY-MODEL.md)
+- **Contribution Guide**: [docs/CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
@@ -118,7 +118,7 @@ For comprehensive module-specific guides, consult:
 - **Makefile Syntax Error (`QA-001`)**: Line 12 in `Makefile` contains an unindented command, causing `make` to fail with exit code 2.
 - **CI Pipeline Scope (`QA-004`)**: `.github/workflows/ci.yml` builds only `backend/` and `frontend/`, completely ignoring `audit-service/`.
 - **Testcontainers in Unit Builds (`QA-006` / `QA-007`)**: `BookingPersistenceAdapterTest` requires Docker during `mvn test`. Two tests (`NotificationFlowIT`, `JpaOfferingRepositoryTest`) are silenced with `@Disabled("Docker Bug Testcontainers")`.
-- **See Full Risk Register**: [docs/RISK-REGISTER.md](file:///home/santiagojava/IdeaProjects/rejuv-wt/SkillBridge-AI-JAVA-Angular/docs/RISK-REGISTER.md).
+- **See Full Risk Register**: [docs/RISK-REGISTER.md](RISK-REGISTER.md).
 
 ---
 
