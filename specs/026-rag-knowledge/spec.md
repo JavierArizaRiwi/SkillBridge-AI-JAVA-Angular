@@ -1,6 +1,6 @@
 # Feature Specification: Asistente de Conocimiento con RAG (HU-26)
 
-**Feature Branch**: `feature/026-rag-knowledge` | **Created**: 2026-10-22 | **Status**: Draft | **Issue**: #77
+**Feature Branch**: `feature/026-rag-knowledge` | **Created**: 2026-10-22 | **Status**: Draft (refinada 2026-11-09; pendiente de aprobación humana) | **Issue**: #77
 **Input**: Como Customer autenticado, quiero preguntar en lenguaje natural sobre la plataforma (servicios disponibles, política de cancelación, funcionamiento de las mentorías) y recibir una respuesta fundamentada con fuentes citadas, para resolver dudas sin depender de soporte humano y sin respuestas inventadas.
 
 ---
@@ -102,7 +102,8 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 - **FR-004**: El sistema DEBE restringir la ingesta de conocimiento **exclusivamente a datos públicos autorizados**:
   1. Ofertas de mentoría con estado activo (`active == true`).
   2. Categorías públicas del catálogo activo.
-  3. Documentos funcionales públicos de la plataforma (políticas de servicio, política de cancelación de reservas con antelación mínima de 24 horas y preguntas frecuentes operativas).
+  3. Documentos funcionales públicos de la plataforma, **bilingües (español e inglés)**, versionados en `backend/src/main/resources/knowledge/*.md`: política de cancelación (`cancellation-policy.md`), funcionamiento de las mentorías (`mentorships-how-it-works.md`) y preguntas frecuentes (`platform-faq.md`). Cada archivo declara `sourceId`, `type: POLICY_DOC` y `visibility: public`; **el indexador ignora cualquier archivo sin `visibility: public`**.
+  4. Los fragmentos de oferta incluyen `mode` (asincrónica/en vivo) y `durationHours`, para poder responder si un servicio es en vivo y cuánto dura.
   El sistema NUNCA DEBE ingerir información privada de usuarios (reservas, pagos, correos electrónicos, identificadores sensibles) ni documentación interna (`docs/audit/**`, `docs/RISK-REGISTER.md`, configuraciones de seguridad).
 - **FR-005**: El sistema DEBE utilizar un motor de recuperación léxica determinista en memoria (algoritmo BM25 por defecto) con parámetros configurables en propiedades de aplicación:
   - Número máximo de fragmentos a recuperar (`topK`, por defecto 3).
@@ -121,6 +122,10 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
   - Adaptadores REST, persistencia/ingesta y proveedores de IA ubicados en `infrastructure/adapter/`.
 - **FR-012**: La interfaz de usuario del chat de IA en Angular DEBE consumir el endpoint `POST /api/ai/knowledge/ask`, mostrando de forma reactiva la respuesta redactada, el estado de suficiencia de contexto y el detalle visual de las fuentes citadas (título, extracto y puntuación de relevancia).
 - **FR-013**: El desarrollo DEBE respaldarse con una suite de pruebas automatizadas verificables mediante `mvn test`: pruebas unitarias de segmentación de texto, motor BM25 y ensamblado de prompts; pruebas de integración `MockMvc` de endpoints; y pruebas de aceptación de extremo a extremo utilizando un doble determinista de LLM para asegurar reproducibilidad sin dependencias de red externas.
+
+- **FR-014 (idioma)**: El asistente DEBE responder en el idioma de la pregunta cuando sea **español o inglés**; para cualquier otro idioma responde en español. Los documentos de política existen en ambos idiomas y se indexan por secciones de idioma. El catálogo de ofertas se indexa tal como está redactado (hoy en español).
+- **FR-015 (sincronización del índice)**: El índice en memoria DEBE reconstruirse cuando se invalida la caché de ofertas (`OfferingCachePort.evictActiveOfferings()`, `[VERIFIED]` invocada en `OfferingCommandService` al crear, actualizar y (des)activar) y al iniciar la aplicación. La reconstrucción DEBE construir un índice nuevo y **sustituir la referencia de forma atómica**, de modo que las lecturas concurrentes nunca vean un índice parcial. Para categorías, el plan DEBE verificar si existe un gancho equivalente; si no, se invalidará desde `CategoryService`. NO se usan eventos de auditoría de Kafka (`OfferingCreated`, etc.) como disparador: son eventos de auditoría, no de dominio.
+- **FR-016 (límite conocido del idioma)**: BM25 es léxico: una pregunta en inglés NO recupera ofertas redactadas en español salvo por términos compartidos (p. ej. nombres de tecnologías como "Spring Boot"). Es una limitación aceptada, no un defecto. Criterios: las preguntas en inglés sobre **políticas** DEBEN resolverse (los documentos son bilingües); sobre **ofertas** se garantiza solo recuperación por términos compartidos. Mejorarlo (traducción de la consulta, campo de alias bilingüe) requiere una decisión posterior porque introduce una llamada a LLM antes de decidir si hay contexto, lo que contradice FR-006.
 
 ---
 
@@ -165,22 +170,15 @@ Como operador de infraestructura y desarrollador del sistema, quiero que las lla
 
 ## Decisions & Clarifications
 
-Durante la fase de especificación se identificaron las siguientes definiciones funcionales que requieren formalización de producto:
+Decididas el 2026-11-09:
 
-1. `[NEEDS CLARIFICATION: Idioma de consulta y respuesta del asistente]`
-   - **Contexto**: La plataforma SkillBridge y su catálogo actual están redactados en español, pero los usuarios podrían formular preguntas en inglés u otros idiomas.
-   - **Opción A (Recomendada)**: El asistente responderá invariablemente en español claro y conciso, con independencia del idioma en que se formule la pregunta, preservando la coherencia terminológica con el catálogo de ofertas y políticas de la plataforma.
-   - **Opción B**: El asistente detectará el idioma de la consulta del usuario y generará la respuesta en dicho idioma, traduciendo dinámicamente los extractos y citas de fuentes.
+1. **Idioma**: español **e inglés** (responde en el idioma de la pregunta). Ver FR-014 y FR-016 para la limitación léxica.
+2. **Sincronización del índice**: por invalidación de la caché de ofertas con sustitución atómica del índice. Ver FR-015. (Se descarta engancharse a eventos de auditoría de Kafka.)
+3. **Documentos de política**: creados en `backend/src/main/resources/knowledge/` con solo reglas verificadas en el código. **Reembolsos, ausencias y reprogramación NO se documentan porque la política de negocio aún no está definida (issue #68)**; el asistente responderá `hasSufficientContext: false` a esas preguntas hasta que se definan y se añadan al corpus.
 
-2. `[NEEDS CLARIFICATION: Estrategia de sincronización del índice BM25 ante modificaciones en ofertas y categorías]`
-   - **Contexto**: Las ofertas de mentoría y las categorías pueden ser creadas, editadas o desactivadas por instructores y administradores en tiempo de ejecución.
-   - **Opción A (Recomendada)**: Actualización reactiva del índice en memoria, refrescando los fragmentos correspondientes cuando se emitan eventos de dominio de catálogo (`OfferingCreated`, `OfferingUpdated`, `OfferingDeactivated`, `CategoryCreated`) o mediante un listener sobre la invalidación de la caché de ofertas.
-   - **Opción B**: Reindexación periódica programada mediante un proceso en segundo plano (job) cada 10 minutos.
+Pendiente de confirmar:
 
-3. `[NEEDS CLARIFICATION: Comportamiento interactivo de las fuentes citadas en la UI]`
-   - **Contexto**: La respuesta del backend devuelve una lista estructurada de fuentes con su `sourceId`, `title`, `snippet` y `score`.
-   - **Opción A (Recomendada)**: En el componente de chat del frontend, cada fuente se presentará como una tarjeta expandible/colapsable con su extracto y un botón de enlace directo ("Ver mentoría" o "Ver política") que redirige al usuario a la vista correspondiente dentro de la aplicación.
-   - **Opción B**: Mostrar las fuentes exclusivamente como etiquetas informativas (*chips/badges*) con el título y el porcentaje de relevancia, sin interactividad ni navegación hacia el recurso.
+4. `[NEEDS CLARIFICATION: Comportamiento interactivo de las fuentes citadas en la UI]` Recomendado A: tarjeta expandible con enlace a la oferta o política; B: chips informativos. Es P2/P3 y puede recortarse.
 
 ---
 
@@ -188,7 +186,7 @@ Durante la fase de especificación se identificaron las siguientes definiciones 
 
 ### Dependencies
 - **Spring AI 1.1.8**: Marco de trabajo ya integrado en el proyecto para interactuar con modelos de lenguaje a través de `ChatClient`.
-- **Estrategia de Proveedores de IA (HU-27 / HU-28)**: Cadena de fallback entre proveedores de LLM reales para garantizar alta disponibilidad ante contingencias.
+- **Estrategia de Proveedores de IA (HU-27 / HU-28)**: Requisito de **integración**, no de arranque: el RAG puede entregarse con el adaptador actual y adoptar la cadena de fallback cuando exista. Mientras tanto, un fallo del proveedor produce HTTP 503 (FR-009).
 - **Infraestructura de Autenticación JWT**: Dependencia del filtro `JwtAuthenticationFilter` y contexto de Spring Security para garantizar que el endpoint solo atienda a usuarios con sesión activa.
 
 ### Out of Scope
@@ -196,4 +194,6 @@ Durante la fase de especificación se identificaron las siguientes definiciones 
 - **Base de datos vectorial externa o servicios de embeddings remotos**: No se incorporarán tecnologías como pgvector, Milvus, Qdrant ni modelos de incrustación semántica remota, manteniéndose el motor BM25 determinista en memoria.
 - **Historial de conversación multi-turno persistente**: El endpoint procesará consultas individuales de pregunta-respuesta (*single-turn*). El soporte para sesiones de conversación con memoria histórica almacenada en base de datos queda para una fase posterior.
 - **Rate limiting distribuido a nivel de usuario/IP**: La limitación de tasa por usuario forma parte de la deuda técnica registrada (SEC-010 en `docs/RISK-REGISTER.md`) y se abordará en una iniciativa transversal de seguridad de API.
+- **Consulta a servicios externos (p. ej. el servicio de mentorías NestJS)**: el RAG no hace llamadas síncronas a otros servicios (ADR-0006). Las reglas de mentoría salen de los documentos de política curados.
+- **Indexar documentación de ingeniería** (`docs/contracts/**`, `docs/adr/**`, `docs/refinement/**`): los contratos describen el sistema, no son política pública.
 - **Alteración de esquemas relacionales o migraciones de base de datos**: No se modificarán tablas existentes ni se agregarán migraciones Flyway adicionales; el corpus estático se compilará a partir de las entidades existentes y archivos de recursos empaquetados.

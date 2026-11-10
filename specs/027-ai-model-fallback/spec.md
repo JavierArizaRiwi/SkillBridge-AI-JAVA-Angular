@@ -1,6 +1,6 @@
 # Feature Specification: Modelos de IA de respaldo (AI Model Fallback)
 
-**Feature Branch**: `feature/027-ai-model-fallback` | **Created**: 2026-10-22 | **Status**: Draft | **Issue**: #78  
+**Feature Branch**: `feature/027-ai-model-fallback` | **Created**: 2026-10-22 | **Status**: Draft (refinada 2026-11-09; pendiente de aprobación humana) | **Issue**: #78  
 **Input**: Como usuario de las funciones de IA (recomendaciones multimodales, visión, voz y RAG), quiero que si el proveedor de IA principal falla, se agota o excede su cuota, el sistema responda usando automáticamente un modelo de respaldo, para que la funcionalidad siga disponible sin errores visibles.
 
 ---
@@ -193,7 +193,7 @@ Como operador de plataforma y desarrollador de SkillBridge, quiero que cada inte
 | Si toda la cadena falla -> error controlado (503 con formato estándar), nunca un mock con datos fijos fuera de test | Story 3 | FR-006 | SC-007 |
 | Respuesta/evento indica qué proveedor/modelo respondió (`RecommendationGenerated` incluye provider y model) y métricas por intento | Story 3 | FR-007, FR-008 | SC-005 |
 | Pruebas unitarias de la cadena (primario OK, primario falla -> secundario, todos fallan, error no recuperable no salta) sin red ni claves | Story 1, Story 3 | FR-009 | SC-001, SC-002, SC-007 |
-| `docs/ADR-001-AI-PROVIDER-ABSTRACTION.md` actualizado o nuevo ADR en `docs/adr/` | N/A (Documentación) | FR-010 | SC-005 |
+| `docs/adr/ADR-001-AI-PROVIDER-ABSTRACTION.md` actualizado o nuevo ADR en `docs/adr/` | N/A (Documentación) | FR-010 | SC-005 |
 
 ---
 
@@ -228,17 +228,18 @@ Como operador de plataforma y desarrollador de SkillBridge, quiero que cada inte
 - `[INFERRED]` Los servicios de la capa de aplicación (`AiRecommendationService`, `TextToSpeechService`) no deben cambiar de firma ni conocer la existencia de la cadena de fallback; el adaptador compuesto implementa directamente el puerto respectivo (`AiRecommendationPort`, `VisionPort`, `SpeechToTextPort`, `TextToSpeechPort`) y actúa como bean primario inyectable.
 - `[INFERRED]` Todos los modelos candidatos en la cadena deben formatear y adaptar su salida hacia la estructura unificada del puerto (ej. `AiStructuredResponse`), de forma que los casos de uso procesen las recomendaciones de manera idéntica independientemente del proveedor que resolvió la petición.
 
-### Product & Design Decisions Requiring Clarification
+### Product & Design Decisions
 
-- `[NEEDS CLARIFICATION: Criterio de degradación de calidad vs latencia en fallback multimodelo]`
-  - *Contexto*: Al alternar entre modelos de distinta envergadura (ej. conmutar de un modelo analítico primario a un modelo ligero secundario), el nivel de detalle de la explicación puede ser menor para favorecer la inmediatez.
-  - *Opción 1 (Recomendada)*: Priorizar la disponibilidad y la baja latencia (<2s por petición) aceptando explicaciones más concisas del modelo secundario, siempre que respete el esquema JSON estricto y los IDs válidos del catálogo.
-  - *Opción 2*: Restringir el fallback únicamente a modelos del mismo escalón de capacidad y contexto, devolviendo 503 si no hay un modelo de capacidad equivalente disponible.
+Decididas el 2026-11-09:
 
-- `[NEEDS CLARIFICATION: Exposición directa del proveedor y modelo en la respuesta REST hacia el cliente]`
-  - *Contexto*: El evento de Kafka `RecommendationGenerated` debe incluir `provider` y `model`. Se debe definir si el contrato HTTP que consume el frontend también debe exponer estos campos o mantenerse neutral.
-  - *Opción 1 (Recomendada)*: Mantener `provider` y `model` restringidos a los eventos de telemetría/Kafka y logs de auditoría; el cuerpo de respuesta HTTP para el frontend se mantiene completamente agnóstico del proveedor para evitar acoplamiento de la interfaz gráfica.
-  - *Opción 2*: Incorporar campos opcionales `resolvedByProvider` y `resolvedByModel` en el DTO de respuesta HTTP (`RecommendationResult`) para fines de inspección y visualización diagnóstica en la consola de usuario.
+- **Estructura**: HU-27 y HU-28 forman **una épica en dos entregas**. HU-27 (esta) entrega el mecanismo: adaptador compuesto por puerto, cadena ordenada, clasificación recuperable/no recuperable y métricas por intento. HU-28 entrega la configuración declarativa, el circuit breaker y la administración. Se mantienen dos issues para trazabilidad.
+- **Agotamiento de la cadena**: HTTP 503 (`AiProviderException` tipada `UNAVAILABLE`) **sin mock ni datos de ejemplo**, en toda capacidad y en todo entorno salvo `app.ai.provider=mock` explícito. Coherente con HU-26 FR-009 y con el hallazgo RAG-001.
+- **Circuit breaker**: Resilience4j (se incorpora en HU-28; HU-27 no depende de él).
+
+Pendiente de confirmar (se aplica la opción recomendada hasta que se indique lo contrario):
+
+- `[NEEDS CLARIFICATION: Criterio de degradación de calidad vs latencia en fallback multimodelo]` Recomendada la opción 1: priorizar disponibilidad aceptando explicaciones más concisas del modelo secundario, siempre que cumpla el esquema JSON estricto y los IDs válidos del catálogo. Opción 2: restringir el fallback a modelos de capacidad equivalente y devolver 503 si no hay.
+- `[NEEDS CLARIFICATION: Exposición del proveedor y modelo en la respuesta REST]` Recomendada la opción 1: `provider` y `model` solo en eventos Kafka, métricas, logs y el endpoint administrativo de HU-28; el cuerpo HTTP hacia el frontend permanece neutral.
 
 ---
 
