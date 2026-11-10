@@ -4,8 +4,16 @@ name: Claude PR Review
 # de rama (CI verde + aprobación humana) o el auto-merge nativo de GitHub.
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
+    # Sin `synchronize`: una revisión por PR, no una por cada push (control de costos).
+    # Para volver a revisar tras nuevos commits, comenta "@claude revisa de nuevo".
+    types: [opened, ready_for_review, reopened]
     branches: [main, develop]
+    # No gastar tokens en PRs que solo tocan documentación o specs
+    paths-ignore:
+      - '**/*.md'
+      - 'docs/**'
+      - 'specs/**'
+      - '.specify/**'
   # Permite pedir ayuda con "@claude ..." en comentarios de PR
   issue_comment:
     types: [created]
@@ -24,7 +32,8 @@ jobs:
     if: >-
       github.event_name == 'pull_request' &&
       github.event.pull_request.head.repo.full_name == github.repository &&
-      github.event.pull_request.draft == false
+      github.event.pull_request.draft == false &&
+      github.actor != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -62,8 +71,14 @@ jobs:
             solo los hallazgos reales, y termina con un comentario resumen corto:
             veredicto (OK / Cambios necesarios) y los puntos clave.
             Responde en español.
+
+            Control de costos: lee solo los archivos del diff (`gh pr diff`) y,
+            si hace falta, los archivos directamente relacionados. No explores el
+            repositorio completo. Máximo 5 comentarios en línea.
+          # Haiku: el modelo más barato. Para revisiones más profundas usar claude-sonnet-5-5.
           claude_args: |
-            --max-turns 12
+            --model claude-haiku-5-5
+            --max-turns 6
             --allowedTools "mcp__github_inline_comment__create_inline_comment,Bash(gh pr comment:*),Bash(gh pr diff:*),Bash(gh pr view:*),Read,Grep,Glob"
 
   # Respuesta a menciones "@claude" (solo colaboradores con permiso de escritura)
@@ -87,4 +102,5 @@ jobs:
         with:
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
           claude_args: |
-            --max-turns 15
+            --model claude-haiku-5-5
+            --max-turns 8
