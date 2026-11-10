@@ -42,7 +42,8 @@ public class OfferingCommandService implements CreateOfferingUseCase, UpdateOffe
     public Offering create(Actor actor, CreateOfferingUseCase.Command command) {
         UUID ownerId = resolveOwner(actor, command.providerId());
         Offering saved = repository.save(Offering.create(ownerId, command.title(),
-            command.description(), command.category(), command.price()));
+            command.description(), command.category(), command.price(),
+            command.mode(), command.durationHours()));
         cache.evictActiveOfferings();
         
         publishAudit("OfferingCreated", actor, "CREATE", "OFFERING", saved.id().toString());
@@ -54,7 +55,8 @@ public class OfferingCommandService implements CreateOfferingUseCase, UpdateOffe
         Offering offering = load(offeringId);
         policy.assertCanModify(actor, offering);
         Offering saved = repository.save(offering.update(command.title(),
-            command.description(), command.category(), command.price()));
+            command.description(), command.category(), command.price(),
+            command.mode(), command.durationHours()));
         cache.evictActiveOfferings();
         
         publishAudit("OfferingUpdated", actor, "UPDATE", "OFFERING", saved.id().toString());

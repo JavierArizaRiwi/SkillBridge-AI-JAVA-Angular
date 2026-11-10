@@ -36,6 +36,9 @@ class PaymentAuthorizationServiceTest {
     @Mock
     private PaymentEventPublisherPort eventPublisherPort;
 
+    @Mock
+    private PaymentApprovedAssembler approvedAssembler;
+
     @InjectMocks
     private PaymentAuthorizationService service;
 
@@ -69,12 +72,14 @@ class PaymentAuthorizationServiceTest {
         when(repositoryPort.findByIdempotencyKey(idempotencyKey)).thenReturn(Optional.empty());
         PaymentResult newResult = new PaymentResult(UUID.randomUUID(), bookingId, PaymentStatus.APPROVED, "Payment approved");
         when(paymentPort.process(command)).thenReturn(newResult);
+        PaymentApproved enriched = new PaymentApproved(bookingId);
+        when(approvedAssembler.assemble(bookingId, newResult.paymentId())).thenReturn(enriched);
 
         PaymentResult result = service.authorize(command);
 
         assertEquals(newResult, result);
         verify(repositoryPort).save(idempotencyKey, newResult); // Verifica guardado
-        verify(eventPublisherPort).publishApproved(any(PaymentApproved.class)); // Verifica evento emitido
+        verify(eventPublisherPort).publishApproved(enriched); // Verifica evento emitido
     }
 
     @Test

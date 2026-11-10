@@ -72,7 +72,7 @@ public class OfferingController {
     })
     public OfferingResponse create(@Valid @RequestBody CreateOfferingRequest req, Authentication auth) {
         var command = new CreateOfferingUseCase.Command(req.providerId(), req.title(),
-            req.description(), req.category(), req.price());
+            req.description(), req.category(), req.price(), req.mode(), req.durationHours());
         return OfferingResponse.from(create.create(actors.from(auth), command));
     }
 
@@ -88,7 +88,7 @@ public class OfferingController {
     public OfferingResponse update(@PathVariable UUID id, @Valid @RequestBody UpdateOfferingRequest req,
                                    Authentication auth) {
         var command = new UpdateOfferingUseCase.Command(req.title(), req.description(),
-            req.category(), req.price());
+            req.category(), req.price(), req.mode(), req.durationHours());
         return OfferingResponse.from(update.update(actors.from(auth), id, command));
     }
 

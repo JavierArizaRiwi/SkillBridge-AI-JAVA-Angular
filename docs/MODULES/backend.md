@@ -82,7 +82,11 @@ Key settings configured in [backend/src/main/resources/application.yml](../../ba
 | `spring.data.redis.url` | `REDIS_URL` | `redis://localhost:6379` | Redis connection URL |
 | `spring.rabbitmq.addresses` | `RABBITMQ_URL` | `amqp://guest:guest@localhost:5672` | RabbitMQ connection string |
 | `spring.kafka.bootstrap-servers` | `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker address |
-| `app.jwt.secret` | `JWT_SECRET` | *(Hardcoded default)* | HMAC secret key (Must override in production) |
+| `app.jwt.private-key` | `JWT_PRIVATE_KEY` | *(none: required)* | RSA private key, PKCS#8 PEM. JWTs are signed with RS256. The backend does not start without it unless ephemeral keys are enabled |
+| `app.jwt.public-key` | `JWT_PUBLIC_KEY` | *(derived from the private key)* | Optional X.509 PEM; must match the private key |
+| `app.jwt.key-id` | `JWT_KEY_ID` | `skillbridge-1` | `kid` header of issued tokens |
+| `app.jwt.legacy-secret` | `JWT_LEGACY_SECRET` | *(empty)* | Migration only: still **validates** (never issues) old HS256 tokens |
+| `app.jwt.generate-ephemeral-keys` | `JWT_GENERATE_EPHEMERAL_KEYS` | `false` | Local development only: in-memory key pair, sessions lost on restart |
 | `app.ai.provider` | `AI_PROVIDER` | `gemini` | Primary AI provider (`gemini` or `openai`) |
 | `app.payment.provider` | `PAYMENT_PROVIDER` | `stripe` | Payment adapter (`stripe` or `simulated`) |
 | `stripe.api-url` | `STRIPE_API_URL` | `https://api.stripe.com` | Base URL for Stripe REST API |

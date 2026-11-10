@@ -1,5 +1,6 @@
 package com.riwi.skillbridge.infrastructure.adapter.out.persistence.entity;
 
+import com.riwi.skillbridge.domain.model.MentorshipMode;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -17,6 +18,11 @@ public class OfferingEntity {
     private String category;
     private BigDecimal price;
     private boolean active;
+    @Enumerated(EnumType.STRING)
+    @Column(name = "mode", nullable = false)
+    private MentorshipMode mode = MentorshipMode.ASYNCHRONOUS;
+    @Column(name = "duration_hours", nullable = false)
+    private int durationHours = 1;
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -34,6 +40,14 @@ public class OfferingEntity {
         this.createdAt = Instant.now();
     }
 
+    public OfferingEntity(UUID id, UUID providerId, String title, String description,
+                          String category, BigDecimal price, boolean active,
+                          MentorshipMode mode, int durationHours) {
+        this(id, providerId, title, description, category, price, active);
+        this.mode = mode;
+        this.durationHours = durationHours;
+    }
+
     public UUID getId() { return id; }
     public UUID getProviderId() { return providerId; }
     public String getTitle() { return title; }
@@ -41,9 +55,14 @@ public class OfferingEntity {
     public String getCategory() { return category; }
     public BigDecimal getPrice() { return price; }
     public boolean isActive() { return active; }
+    public MentorshipMode getMode() { return mode; }
+    public int getDurationHours() { return durationHours; }
 
     public void  applyChanges(String title, String description, String category,
-                              BigDecimal price, boolean active){
+                              BigDecimal price, boolean active,
+                              MentorshipMode mode, int durationHours){
+        this.mode = mode;
+        this.durationHours = durationHours;
         this.title = title;
         this.description = description;
         this. category = category;

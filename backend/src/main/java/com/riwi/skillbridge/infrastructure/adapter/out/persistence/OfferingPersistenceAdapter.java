@@ -41,7 +41,8 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
         OfferingEntity saved = repository.findById(offering.id())
             .map(existing -> {
                 existing.applyChanges(offering.title(), offering.description(),
-                    offering.category(), offering.price(), offering.active());
+                    offering.category(), offering.price(), offering.active(),
+                    offering.mode(), offering.durationHours());
                 return repository.save(existing);
             })
             .orElseGet(() -> repository.save(toEntity(offering)));
@@ -50,11 +51,11 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
 
     private Offering toDomain(OfferingEntity e) {
         return new Offering(e.getId(), e.getProviderId(), e.getTitle(), e.getDescription(),
-            e.getCategory(), e.getPrice(), e.isActive());
+            e.getCategory(), e.getPrice(), e.isActive(), e.getMode(), e.getDurationHours());
     }
 
     private OfferingEntity toEntity(Offering o) {
         return new OfferingEntity(o.id(), o.providerId(), o.title(), o.description(),
-            o.category(), o.price(), o.active());
+            o.category(), o.price(), o.active(), o.mode(), o.durationHours());
     }
 }

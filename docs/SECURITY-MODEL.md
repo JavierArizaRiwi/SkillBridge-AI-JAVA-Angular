@@ -6,7 +6,7 @@ This document outlines the authentication architecture, authorization controls, 
 
 ## 1. Authentication & Session Management
 
-- **Paradigm**: Stateless JWT (JSON Web Token) using HMAC-SHA256 (`io.jsonwebtoken:jjwt`).
+- **Paradigm**: Stateless JWT (JSON Web Token) signed with **RS256** (`io.jsonwebtoken:jjwt`). Only the backend holds the private key (`JWT_PRIVATE_KEY`, no default); other services validate with the public key. Tokens carry `sub` (email), `uid` (user UUID), `email`, `role`, `iss = skillbridge` and a `kid` header. Contract and migration plan: [`contracts/mentorships/security.md`](contracts/mentorships/security.md). Tokens issued before the change were HS256 and are only accepted while `JWT_LEGACY_SECRET` is set.
 - **Token Delivery Mechanism**:
   - Primary: HttpOnly, Secure, SameSite=None cookie named `access_token` ([SecurityConfiguration.java:40-44](../backend/src/main/java/com/riwi/skillbridge/infrastructure/config/SecurityConfiguration.java#L40-L44)).
   - Fallback: Standard `Authorization: Bearer <token>` HTTP header handled by [JwtAuthenticationFilter.java](../backend/src/main/java/com/riwi/skillbridge/infrastructure/security/JwtAuthenticationFilter.java).

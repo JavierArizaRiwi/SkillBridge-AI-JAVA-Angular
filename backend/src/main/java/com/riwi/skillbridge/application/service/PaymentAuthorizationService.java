@@ -4,7 +4,6 @@ import com.riwi.skillbridge.application.port.in.AuthorizePaymentUseCase;
 import com.riwi.skillbridge.application.port.out.PaymentEventPublisherPort;
 import com.riwi.skillbridge.application.port.out.PaymentPort;
 import com.riwi.skillbridge.application.port.out.PaymentResultRepositoryPort;
-import com.riwi.skillbridge.domain.event.PaymentApproved;
 import com.riwi.skillbridge.domain.event.PaymentRejected;
 import com.riwi.skillbridge.domain.model.PaymentCommand;
 import com.riwi.skillbridge.domain.model.PaymentResult;
@@ -19,14 +18,17 @@ public class PaymentAuthorizationService implements AuthorizePaymentUseCase {
     private final PaymentPort paymentPort;
     private final PaymentResultRepositoryPort repositoryPort;
     private final PaymentEventPublisherPort eventPublisherPort;
+    private final PaymentApprovedAssembler approvedAssembler;
 
     public PaymentAuthorizationService(
             PaymentPort paymentPort,
             PaymentResultRepositoryPort repositoryPort,
-            PaymentEventPublisherPort eventPublisherPort) {
+            PaymentEventPublisherPort eventPublisherPort,
+            PaymentApprovedAssembler approvedAssembler) {
         this.paymentPort = paymentPort;
         this.repositoryPort = repositoryPort;
         this.eventPublisherPort = eventPublisherPort;
+        this.approvedAssembler = approvedAssembler;
     }
 
     @Override
@@ -40,7 +42,8 @@ public class PaymentAuthorizationService implements AuthorizePaymentUseCase {
         repositoryPort.save(command.idempotencyKey(), result);
 
         if (result.status() == PaymentStatus.APPROVED) {
-            eventPublisherPort.publishApproved(new PaymentApproved(result.bookingId()));
+            eventPublisherPort.publishApproved(
+                approvedAssembler.assemble(result.bookingId(), result.paymentId()));
         } else if (result.status() == PaymentStatus.DECLINED) {
             eventPublisherPort.publishRejected(new PaymentRejected(result.bookingId(), result.message()));
         }
