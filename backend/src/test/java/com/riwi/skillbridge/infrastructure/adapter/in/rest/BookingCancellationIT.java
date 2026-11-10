@@ -69,7 +69,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * El control visual de doble clic corresponde al frontend y no se prueba aquí.
  */
 @SpringBootTest(properties = {
-    "app.jwt.secret=" + BookingCancellationIT.JWT_SECRET,
+    "app.jwt.generate-ephemeral-keys=true",
+    "app.jwt.legacy-secret=" + BookingCancellationIT.JWT_SECRET,
     "app.jwt.expiration-minutes=30",
     "app.cors.allowed-origins=http://localhost:4200",
     "spring.rabbitmq.listener.simple.retry.initial-interval=100ms",
@@ -307,11 +308,11 @@ class BookingCancellationIT {
     }
 
     private String ownerToken() {
-        return jwtService.generate(OWNER_EMAIL, Role.CUSTOMER.name());
+        return jwtService.generate(OWNER_ID, OWNER_EMAIL, Role.CUSTOMER.name());
     }
 
     private String otherCustomerToken() {
-        return jwtService.generate(OTHER_CUSTOMER_EMAIL, Role.CUSTOMER.name());
+        return jwtService.generate(OTHER_CUSTOMER_ID, OTHER_CUSTOMER_EMAIL, Role.CUSTOMER.name());
     }
 
     private String expiredOwnerToken() {

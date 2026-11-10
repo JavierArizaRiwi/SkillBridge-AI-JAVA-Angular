@@ -48,7 +48,7 @@ public class AuthService implements AuthUseCase {
         );
         auditPublisher.publish(event);
 
-        return tokens.generate(saved.email(), saved.role().name());
+        return tokens.generate(saved.id(), saved.email(), saved.role().name());
     }
 
     @Override
@@ -71,6 +71,6 @@ public class AuthService implements AuthUseCase {
         );
         auditPublisher.publish(event);
 
-        return tokens.generate(user.email(), user.role().name());
+        return tokens.generate(user.id(), user.email(), user.role().name());
     }
 }

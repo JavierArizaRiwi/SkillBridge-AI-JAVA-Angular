@@ -120,7 +120,15 @@ springdoc:
     path: /swagger-ui.html
 app:
   jwt:
-    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-at-least-32-characters}
+    # RS256: la clave privada solo existe en este servicio; los servicios satélite validan con la pública.
+    # Sin valores por defecto: si falta JWT_PRIVATE_KEY la aplicación no arranca (SEC-002).
+    private-key: ${JWT_PRIVATE_KEY:}
+    public-key: ${JWT_PUBLIC_KEY:}
+    key-id: ${JWT_KEY_ID:skillbridge-1}
+    # Solo durante la migración desde HS256: valida (no emite) tokens antiguos. Vaciar después.
+    legacy-secret: ${JWT_LEGACY_SECRET:}
+    # Solo desarrollo/tests: genera un par en memoria. NUNCA en producción.
+    generate-ephemeral-keys: ${JWT_GENERATE_EPHEMERAL_KEYS:false}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
     cookie:
       name: ${JWT_COOKIE_NAME:access_token}

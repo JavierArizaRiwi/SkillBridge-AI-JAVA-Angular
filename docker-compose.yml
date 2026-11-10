@@ -67,7 +67,13 @@ services:
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-skillbridge_dev}
       REDIS_URL: redis://redis:6379
       RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672
-      JWT_SECRET: ${JWT_SECRET:-change-this-to-a-long-random-secret-at-least-32-characters}
+      # RS256. Para producción define JWT_PRIVATE_KEY (PEM PKCS#8). En local, sin claves, se generan
+      # efímeras (las sesiones se pierden al reiniciar). Ver docs/contracts/mentorships/security.md
+      JWT_PRIVATE_KEY: ${JWT_PRIVATE_KEY:-}
+      JWT_PUBLIC_KEY: ${JWT_PUBLIC_KEY:-}
+      JWT_KEY_ID: ${JWT_KEY_ID:-skillbridge-1}
+      JWT_LEGACY_SECRET: ${JWT_LEGACY_SECRET:-}
+      JWT_GENERATE_EPHEMERAL_KEYS: ${JWT_GENERATE_EPHEMERAL_KEYS:-true}
       AI_PROVIDER: ${AI_PROVIDER:-gemini}
       AI_AUDIO_PROVIDER: ${AI_AUDIO_PROVIDER:-groq}
       GROQ_API_KEY: ${GROQ_API_KEY:-}

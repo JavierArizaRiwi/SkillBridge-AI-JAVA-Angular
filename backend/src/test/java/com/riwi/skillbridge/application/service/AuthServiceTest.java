@@ -49,7 +49,7 @@ class AuthServiceTest {
         when(users.existsByEmail("test@example.com")).thenReturn(false);
         when(users.save(any(UserAccount.class))).thenReturn(savedUser);
         when(passwords.encode("password")).thenReturn("hash");
-        when(tokens.generate("test@example.com", "CUSTOMER")).thenReturn("token");
+        when(tokens.generate(any(), eq("test@example.com"), eq("CUSTOMER"))).thenReturn("token");
 
         authService.register("Test User", "test@example.com", "password");
 
@@ -70,7 +70,7 @@ class AuthServiceTest {
         UserAccount user = new UserAccount(UUID.randomUUID(), "Test User", "test@example.com", "hash", Role.CUSTOMER);
         when(users.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwords.matches("password", "hash")).thenReturn(true);
-        when(tokens.generate("test@example.com", "CUSTOMER")).thenReturn("token");
+        when(tokens.generate(any(), eq("test@example.com"), eq("CUSTOMER"))).thenReturn("token");
 
         authService.login("test@example.com", "password");
 
@@ -90,7 +90,7 @@ class AuthServiceTest {
     void login_de_cuenta_activa_devuelve_token() {
         when(users.findByEmail("ana@test.com")).thenReturn(Optional.of(account(UserStatus.ACTIVE)));
         when(passwords.matches("clave", "hash")).thenReturn(true);
-        when(tokens.generate("ana@test.com", "CUSTOMER")).thenReturn("jwt");
+        when(tokens.generate(any(), eq("ana@test.com"), eq("CUSTOMER"))).thenReturn("jwt");
 
         assertEquals("jwt", authService.login("ana@test.com", "clave"));
     }
@@ -101,7 +101,7 @@ class AuthServiceTest {
         when(passwords.matches("clave", "hash")).thenReturn(true);
 
         assertThrows(ForbiddenOperationException.class, () -> authService.login("ana@test.com", "clave"));
-        verify(tokens, never()).generate(any(), any());
+        verify(tokens, never()).generate(any(), any(), any());
         verify(auditPublisher, never()).publish(any());
     }
 
