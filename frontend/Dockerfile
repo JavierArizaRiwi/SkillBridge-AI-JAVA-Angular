@@ -1,10 +1,12 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --no-audit --no-fund
+RUN npm install --include=dev --no-audit --no-fund
 COPY . .
 ARG API_URL=/api
+ARG STRIPE_PUBLISHABLE_KEY=
 ENV API_URL=$API_URL
+ENV STRIPE_PUBLISHABLE_KEY=$STRIPE_PUBLISHABLE_KEY
 RUN npm run build
 
 FROM nginx:stable-alpine

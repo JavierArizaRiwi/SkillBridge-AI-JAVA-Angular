@@ -8,8 +8,7 @@ down:
 
 reset:
 	docker compose down -v --remove-orphans
-
-docker compose up --build -d
+	docker compose up --build -d
 
 logs:
 	docker compose logs -f --tail=200

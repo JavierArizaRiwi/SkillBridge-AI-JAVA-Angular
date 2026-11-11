@@ -1,0 +1,2 @@
+ALTER TABLE app_users ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'ACTIVE';
+ALTER TABLE app_users ADD CONSTRAINT ck_app_users_status CHECK (status IN ('ACTIVE', 'SUSPENDED'));
