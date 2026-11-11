@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skillbridge-analytics"
+version = "0.1.0"
+description = "SkillBridge AI — Demand Analytics PySpark batch engine (HU-25)"
+requires-python = ">=3.11"
+dependencies = [
+    "pyspark==3.5.4",
+]
+
+[project.optional-dependencies]
+test = ["pytest==8.3.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v"

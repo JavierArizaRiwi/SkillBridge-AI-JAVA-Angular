@@ -263,3 +263,34 @@ volumes:
   grafana_data: null
   kafka_data: null
   audit_mongo_data: null
+
+# ---------------------------------------------------------------------------
+# HU-25 — Spark analytics engine (profile: analytics)
+# Activated only with:  docker compose --profile analytics run analytics-spark
+# Default docker compose up does NOT start this service.
+#
+# When to use Spark (quantitative thresholds — docs: analytics/spark/README.md):
+#   • > 500 000 events/day  OR  > 100 GB of historical JSONL data
+#   Below these thresholds a SQL query or DuckDB script is more efficient.
+# ---------------------------------------------------------------------------
+  analytics-spark:
+    profiles: [analytics]
+    build:
+      context: ./analytics/spark
+    volumes:
+      - ${ANALYTICS_DATASET_DIR:-./analytics/spark/data/sample}:/data/dataset:ro
+      - ${ANALYTICS_OUTPUT_DIR:-./analytics/spark/output}:/data/output
+      - ${ANALYTICS_QUARANTINE_DIR:-./analytics/spark/data/quarantine}:/data/quarantine
+    command:
+      - --dataset
+      - /data/dataset
+      - --output
+      - /data/output
+      - --quarantine
+      - /data/quarantine
+    environment:
+      JAVA_TOOL_OPTIONS: >-
+        -Xmx${ANALYTICS_DRIVER_MEMORY_MB:-1024}m
+        -Xms256m
+    networks:
+      - skillbridge
