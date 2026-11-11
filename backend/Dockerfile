@@ -12,4 +12,4 @@ RUN useradd --system --uid 10001 spring
 COPY --from=builder /workspace/target/*.jar app.jar
 USER spring
 EXPOSE 8080
-ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60.0", "-jar", "/app/app.jar"]
+ENTRYPOINT ["java", "-XX:MaxRAMPercentage=60.0", "-Djava.net.preferIPv4Stack=true", "-jar", "/app/app.jar"]

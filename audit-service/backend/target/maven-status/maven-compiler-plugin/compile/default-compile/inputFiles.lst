@@ -1,0 +1,7 @@
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/AuditServiceApplication.java
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/config/AuditMongoInitializer.java
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/config/CorsConfig.java
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/consumer/KafkaAuditConsumer.java
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/controller/AuditController.java
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/model/BusinessEvent.java
+/home/jeimar_java/Vídeos/SkillBridge-AI-JAVA-Angular/audit-service/backend/src/main/java/com/riwi/audit/repository/AuditEventRepository.java
