@@ -6,4 +6,5 @@ import java.util.UUID;
 
 public interface CreateBookingUseCase {
     Booking create(UUID offeringId, Instant scheduledAt, String customerEmail);
+    Booking create(UUID offeringId, Instant scheduledAt, String customerEmail, String idempotencyKey);
 }

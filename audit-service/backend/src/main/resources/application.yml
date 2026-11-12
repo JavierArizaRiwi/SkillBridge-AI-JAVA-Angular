@@ -1,0 +1,35 @@
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: audit-service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:audit-service-group}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
+      properties:
+        spring.deserializer.value.delegate.class: org.springframework.kafka.support.serializer.JsonDeserializer
+        spring.json.trusted.packages: '*'
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.riwi.audit.model.BusinessEvent
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+app:
+  kafka:
+    topic:
+      booking-events: ${KAFKA_TOPIC_BOOKING_EVENTS:booking-events}
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8090,http://localhost:4200}

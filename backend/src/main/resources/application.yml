@@ -1,11 +1,36 @@
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
-
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%X{correlationId:-N/A}] %logger{36} - %msg%n"
 spring:
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
   application:
     name: skillbridge-api
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+  notifications:
+    sender: ${NOTIFICATIONS_SENDER:simulated}
+    email:
+      from: ${NOTIFICATIONS_EMAIL_FROM:no-reply@skillbridge.local}
   ai:
+    openai:
+      api-key: ${OPENAI_API_KEY:dummy-key}
+      enabled: false
+      chat:
+        enabled: false
     google:
       genai:
         api-key: ${GEMINI_API_KEY:}
@@ -14,6 +39,10 @@ spring:
             model: ${GEMINI_MODEL:gemini-3.8-flash}
             temperature: 0.2
             max-output-tokens: 800
+  servlet:
+    multipart:
+      max-file-size: ${AI_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${AI_MULTIPART_MAX_REQUEST_SIZE:10MB}
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillbridge}
     username: ${DATABASE_USER:skillbridge}
@@ -37,14 +66,32 @@ spring:
       timeout: 2s
   rabbitmq:
     addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+    connection-timeout: 3s
+    publisher-confirm-type: correlated
+    publisher-returns: true
     listener:
       simple:
+        acknowledge-mode: auto
         default-requeue-rejected: false
+        prefetch: 10
         retry:
           enabled: true
           initial-interval: 2s
+          multiplier: 2.0
+          max-interval: 10s
           max-attempts: 3
-
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:skillbridge-audit-group}
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
 management:
   endpoints:
     web:
@@ -58,16 +105,40 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-
 app:
   jwt:
     secret: ${JWT_SECRET:change-this-to-a-long-random-secret-at-least-32-characters}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+    cookie:
+      name: ${JWT_COOKIE_NAME:access_token}
+      secure: ${JWT_COOKIE_SECURE:true}
+      same-site: ${JWT_COOKIE_SAME_SITE:None}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8088,http://localhost:4200}
   cache:
     offerings-ttl-minutes: ${OFFERINGS_CACHE_TTL_MINUTES:10}
+  ai:
+    provider: ${AI_PROVIDER:gemini}
+    audio-provider: ${AI_AUDIO_PROVIDER:gemini}
+    groq:
+      api-key: ${GROQ_API_KEY:}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:10}
+    gemini:
+      enabled: ${GEMINI_ENABLED:true}
+    openai:
+      enabled: false
+      chat:
+        enabled: false
+    media:
+      max-audio-bytes: ${AI_MEDIA_MAX_AUDIO_BYTES:10485760}
+      max-image-bytes: ${AI_MEDIA_MAX_IMAGE_BYTES:5242880}
+  booking:
+    cancellation:
+      minimum-notice-hours: ${BOOKING_CANCELLATION_MINIMUM_NOTICE_HOURS:24}
+  kafka:
+    topic:
+      booking-events: ${KAFKA_TOPIC_BOOKING_EVENTS:booking-events}
+      audit-events: ${KAFKA_TOPIC_AUDIT_EVENTS:booking-events}
