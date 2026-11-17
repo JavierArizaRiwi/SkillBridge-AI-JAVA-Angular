@@ -2,7 +2,12 @@ global:
   scrape_interval: 15s
 
 scrape_configs:
-  - job_name: skillbridge-api
+  - job_name: skillbridge-backend
     metrics_path: /actuator/prometheus
     static_configs:
       - targets: ["backend:8080"]
+
+  - job_name: audit-backend
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["audit-backend:8081"]

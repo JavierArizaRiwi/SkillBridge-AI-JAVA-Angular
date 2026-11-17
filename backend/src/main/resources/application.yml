@@ -1,11 +1,47 @@
 server:
   port: ${PORT:8080}
   forward-headers-strategy: framework
-
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} %-5level [%X{correlationId:-N/A}] %logger{36} - %msg%n"
 spring:
+  cloud:
+    compatibility-verifier:
+      enabled: false
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.model.openai.autoconfigure.OpenAiChatAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiEmbeddingConnectionAutoConfiguration
+      - org.springframework.ai.model.google.genai.autoconfigure.embedding.GoogleGenAiTextEmbeddingAutoConfiguration
   application:
     name: skillbridge-api
+  mail:
+    host: ${MAIL_HOST:localhost}
+    port: ${MAIL_PORT:1025}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:false}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:false}
+      mail.smtp.connectiontimeout: 5000
+      mail.smtp.timeout: 5000
+      mail.smtp.writetimeout: 5000
+  notifications:
+    sender: ${NOTIFICATIONS_SENDER:simulated}
+    email:
+      from: ${NOTIFICATIONS_EMAIL_FROM:no-reply@skillbridge.local}
+    payment-reminder:
+      enabled: ${NOTIFICATIONS_PAYMENT_REMINDER_ENABLED:true}
+      cron: ${NOTIFICATIONS_PAYMENT_REMINDER_CRON:0 0 8 * * *}
   ai:
+    model:
+      embedding:
+        text: google-genai
+    openai:
+      api-key: ${OPENAI_API_KEY:dummy-key}
+      enabled: false
+      chat:
+        enabled: false
     google:
       genai:
         api-key: ${GEMINI_API_KEY:}
@@ -13,7 +49,24 @@ spring:
           options:
             model: ${GEMINI_MODEL:gemini-3.8-flash}
             temperature: 0.2
-            max-output-tokens: 800
+            max-output-tokens: ${GEMINI_MAX_OUTPUT_TOKENS:2048}
+        embedding:
+          api-key: ${GEMINI_EMBEDDING_API_KEY:}
+          text:
+            options:
+              model: gemini-embedding-001
+              dimensions: 768
+    tts:
+      enabled: ${TTS_ENABLED:false}
+      max-chars: ${TTS_MAX_CHARS:2000}
+      elevenlabs:
+        api-key: ${ELEVENLABS_API_KEY:}
+        voice-id: ${ELEVENLABS_VOICE_ID:}
+        model-id: ${ELEVENLABS_MODEL_ID:eleven_multilingual_v2}
+  servlet:
+    multipart:
+      max-file-size: ${AI_MULTIPART_MAX_FILE_SIZE:10MB}
+      max-request-size: ${AI_MULTIPART_MAX_REQUEST_SIZE:10MB}
   datasource:
     url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/skillbridge}
     username: ${DATABASE_USER:skillbridge}
@@ -37,14 +90,32 @@ spring:
       timeout: 2s
   rabbitmq:
     addresses: ${RABBITMQ_URL:amqp://guest:guest@localhost:5672}
+    connection-timeout: 3s
+    publisher-confirm-type: correlated
+    publisher-returns: true
     listener:
       simple:
+        acknowledge-mode: auto
         default-requeue-rejected: false
+        prefetch: 10
         retry:
           enabled: true
           initial-interval: 2s
+          multiplier: 2.0
+          max-interval: 10s
           max-attempts: 3
-
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:skillbridge-audit-group}
+      auto-offset-reset: earliest
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
 management:
   endpoints:
     web:
@@ -58,16 +129,153 @@ management:
   metrics:
     tags:
       application: ${spring.application.name}
-
 springdoc:
   swagger-ui:
     path: /swagger-ui.html
-
 app:
   jwt:
-    secret: ${JWT_SECRET:change-this-to-a-long-random-secret-at-least-32-characters}
+    # RS256: la clave privada solo existe en este servicio; los servicios satélite validan con la pública.
+    # Sin valores por defecto: si falta JWT_PRIVATE_KEY la aplicación no arranca (SEC-002).
+    private-key: ${JWT_PRIVATE_KEY:}
+    public-key: ${JWT_PUBLIC_KEY:}
+    key-id: ${JWT_KEY_ID:skillbridge-1}
+    # Solo durante la migración desde HS256: valida (no emite) tokens antiguos. Vaciar después.
+    legacy-secret: ${JWT_LEGACY_SECRET:}
+    # Solo desarrollo/tests: genera un par en memoria. NUNCA en producción.
+    generate-ephemeral-keys: ${JWT_GENERATE_EPHEMERAL_KEYS:false}
     expiration-minutes: ${JWT_EXPIRATION_MINUTES:120}
+    cookie:
+      name: ${JWT_COOKIE_NAME:access_token}
+      secure: ${JWT_COOKIE_SECURE:true}
+      same-site: ${JWT_COOKIE_SAME_SITE:None}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:8088,http://localhost:4200}
   cache:
     offerings-ttl-minutes: ${OFFERINGS_CACHE_TTL_MINUTES:10}
+  ai:
+    provider: ${AI_PROVIDER:gemini}
+    audio-provider: ${AI_AUDIO_PROVIDER:gemini}
+    groq:
+      api-key: ${GROQ_API_KEY:}
+      audio-model: ${GROQ_AUDIO_MODEL:whisper-large-v3-turbo}
+    timeout-seconds: ${AI_TIMEOUT_SECONDS:10}
+    gemini:
+      enabled: ${GEMINI_ENABLED:true}
+    openai:
+      enabled: false
+      chat:
+        enabled: false
+    media:
+      max-audio-bytes: ${AI_MEDIA_MAX_AUDIO_BYTES:10485760}
+      max-image-bytes: ${AI_MEDIA_MAX_IMAGE_BYTES:5242880}
+    fallback:
+      chat:
+        chain:
+          - provider: gemini
+            model: ${GEMINI_MODEL:gemini-3.8-flash}
+            enabled: true
+            timeout-seconds: 10
+          - provider: openai
+            model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+            enabled: true
+            timeout-seconds: 10
+        circuit-breaker:
+          failure-rate-threshold: 50.0
+          sliding-window-size: 10
+          wait-duration-in-open-state-seconds: 30
+          permitted-number-of-calls-in-half-open-state: 3
+        retry:
+          max-attempts: 3
+          initial-interval-ms: 500
+          multiplier: 1.5
+      vision:
+        chain:
+          - provider: gemini
+            model: ${GEMINI_VISION_MODEL:gemini-3.8-flash}
+            enabled: true
+            timeout-seconds: 10
+        circuit-breaker:
+          failure-rate-threshold: 50.0
+          sliding-window-size: 10
+          wait-duration-in-open-state-seconds: 30
+          permitted-number-of-calls-in-half-open-state: 3
+      stt:
+        chain:
+          - provider: groq
+            model: ${GROQ_AUDIO_MODEL:whisper-large-v3-turbo}
+            enabled: true
+            timeout-seconds: 10
+          - provider: gemini
+            model: gemini-audio
+            enabled: true
+            timeout-seconds: 10
+        circuit-breaker:
+          failure-rate-threshold: 50.0
+          sliding-window-size: 10
+          wait-duration-in-open-state-seconds: 30
+          permitted-number-of-calls-in-half-open-state: 3
+      tts:
+        chain:
+          - provider: elevenlabs
+            model: multilingual-v2
+            enabled: true
+            timeout-seconds: 10
+          - provider: noop
+            model: noop
+            enabled: true
+            timeout-seconds: 10
+        circuit-breaker:
+          failure-rate-threshold: 50.0
+          sliding-window-size: 10
+          wait-duration-in-open-state-seconds: 30
+          permitted-number-of-calls-in-half-open-state: 3
+      rag:
+        chain:
+          - provider: gemini
+            model: ${GEMINI_MODEL:gemini-3.8-flash}
+            enabled: true
+            timeout-seconds: 10
+          - provider: openai
+            model: ${OPENAI_CHAT_MODEL:gpt-4o-mini}
+            enabled: true
+            timeout-seconds: 10
+      embedding:
+        chain:
+          - provider: gemini
+            model: text-embedding-004
+            enabled: true
+            timeout-seconds: 10
+          - provider: openai
+            model: text-embedding-3-small
+            enabled: true
+            timeout-seconds: 10
+  rag:
+    top-k: ${RAG_TOP_K:3}
+    # PROVISIONAL (0.5, decidido por el propietario el 2026-11-10). Pendiente de calibrar con el informe real (FR-019, T030).
+    min-score-threshold: ${RAG_MIN_SCORE_THRESHOLD:0.5}
+    timeout-seconds: ${RAG_TIMEOUT_SECONDS:10}
+    max-context-chars: ${RAG_MAX_CONTEXT_CHARS:6000}
+    rrf-k: ${RAG_RRF_K:60}
+    # Recomendaciones: si hay más ofertas activas que este número, solo las N más cercanas a la necesidad llegan al LLM (0 = desactivado).
+    recommendation-shortlist-size: ${RAG_RECOMMENDATION_SHORTLIST_SIZE:15}
+  booking:
+    cancellation:
+      minimum-notice-hours: ${BOOKING_CANCELLATION_MINIMUM_NOTICE_HOURS:24}
+  kafka:
+    topic:
+      booking-events: ${KAFKA_TOPIC_BOOKING_EVENTS:booking-events}
+      audit-events: ${KAFKA_TOPIC_AUDIT_EVENTS:booking-events}
+      recommendation-events: ${KAFKA_TOPIC_RECOMMENDATION_EVENTS:recommendation-events}
+
+stripe:
+  api-url: ${STRIPE_API_URL:https://api.stripe.com}
+  secret-key: ${STRIPE_SECRET_KEY:}
+  webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  currency: ${STRIPE_CURRENCY:usd}
+
+zoom:
+  account-id: ${ZOOM_ACCOUNT_ID:}
+  client-id: ${ZOOM_CLIENT_ID:}
+  client-secret: ${ZOOM_CLIENT_SECRET:}
+  sdk-key: ${ZOOM_SDK_KEY:}
+  sdk-secret: ${ZOOM_SDK_SECRET:}

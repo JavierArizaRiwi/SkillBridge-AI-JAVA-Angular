@@ -1,79 +1,182 @@
-skillbridge-ai/
-  .editorconfig
-  .env.example
-  .github
-  .github/PULL_REQUEST_TEMPLATE.md
-  .github/workflows
-  .github/workflows/ci.yml
-  .gitignore
-  LICENSE
-  Makefile
-  PROJECT-STRUCTURE.txt
-  README.md
-  backend
-  backend/.dockerignore
-  backend/Dockerfile
-  backend/pom.xml
-  backend/src
-  backend/src/main
-  backend/src/main/java
-  backend/src/main/java/com
-  backend/src/main/resources
-  backend/src/main/resources/application.yml
-  backend/src/main/resources/db
-  backend/src/test
-  backend/src/test/java
-  backend/src/test/java/com
-  docker-compose.yml
-  docs
-  docs/API.md
-  docs/ARCHITECTURE.md
-  docs/BACKLOG.md
-  docs/DEPLOYMENT-CHECKLIST.md
-  docs/INSTRUCTOR-GUIDE.md
-  docs/adr
-  docs/adr/0001-modular-monolith-first.md
-  docs/adr/0002-managed-services-in-cloud.md
-  docs/architecture.mmd
-  frontend
-  frontend/.dockerignore
-  frontend/Dockerfile
-  frontend/angular.json
-  frontend/nginx.conf.template
-  frontend/package.json
-  frontend/proxy.conf.json
-  frontend/public
-  frontend/public/env.js
-  frontend/scripts
-  frontend/scripts/generate-env.mjs
-  frontend/src
-  frontend/src/app
-  frontend/src/app/app.component.ts
-  frontend/src/app/app.routes.ts
-  frontend/src/app/core
-  frontend/src/app/core/api.ts
-  frontend/src/app/core/auth.interceptor.ts
-  frontend/src/app/core/auth.service.ts
-  frontend/src/app/core/offering.service.ts
-  frontend/src/app/features
-  frontend/src/app/features/ai.component.ts
-  frontend/src/app/features/booking.component.ts
-  frontend/src/app/features/home.component.ts
-  frontend/src/app/features/login.component.ts
-  frontend/src/env.d.ts
-  frontend/src/index.html
-  frontend/src/main.ts
-  frontend/src/styles.css
-  frontend/tsconfig.app.json
-  frontend/tsconfig.json
-  frontend/tsconfig.spec.json
-  frontend/vercel.json
-  ops
-  ops/grafana
-  ops/grafana/provisioning
-  ops/grafana/provisioning/datasources
-  ops/grafana/provisioning/datasources/datasource.yml
-  ops/prometheus
-  ops/prometheus/prometheus.yml
-  scripts
-  scripts/smoke-test.sh
+SkillBridge AI — repository structure
+Files tracked by git (plus new, not-ignored files), up to depth 3. Counts drift as files are added.
+
+├── .agents/                                Antigravity agent definitions and workflows
+│   ├── agents/
+│   │   └── agy-worktree-orchestrator/ (1 file)
+│   ├── skills/
+│   │   └── verify/ (1 file)
+│   └── workflows/
+│       └── (8 files)
+├── .claude/                                Claude Code commands and configuration
+│   ├── agents/
+│   │   └── agy-worktree-orchestrator.md
+│   ├── commands/
+│   │   └── (8 files)
+│   ├── hooks/
+│   │   └── protect-paths.sh
+│   ├── skills/
+│   │   └── verify/ (1 file)
+│   └── settings.json
+├── .github/                                CI/CD workflows and repository templates
+│   ├── .maven/
+│   │   └── settings.xml
+│   ├── workflows/
+│   │   ├── ci.yml
+│   │   ├── claude-review.yml
+│   │   └── qodana_code_quality.yml
+│   └── PULL_REQUEST_TEMPLATE.md
+├── .specify/                               Spec-Driven Development governance and templates
+│   ├── memory/
+│   │   └── constitution.md
+│   ├── scripts/
+│   │   └── bash/ (7 files)
+│   ├── templates/
+│   │   ├── agent-file-template.md
+│   │   ├── checklist-template.md
+│   │   ├── constitution-template.md
+│   │   ├── plan-template.md
+│   │   ├── spec-template.md
+│   │   └── tasks-template.md
+│   └── README.md
+├── audit-service/                          Independent event-driven audit microservice
+│   ├── backend/
+│   │   ├── src/ (10 files)
+│   │   ├── Dockerfile
+│   │   └── pom.xml
+│   ├── frontend/
+│   │   ├── public/ (2 files)
+│   │   ├── scripts/ (1 file)
+│   │   ├── src/ (19 files)
+│   │   └── (13 files)
+│   └── .env.example
+├── backend/                                Core business logic, auth, bookings, payments, and AI
+│   ├── docs/
+│   │   ├── HU-14-Integracion-Stripe-Backend-Fase1.md
+│   │   ├── HU-14-Integracion-Stripe-Frontend-Fase2.md
+│   │   ├── HU-14-Resumen-Archivos.md
+│   │   ├── HU-14-Resumen-Integracion.md
+│   │   ├── HU-14-Resumen-Tests.md
+│   │   └── HU-14-Tarjetas-Prueba-Stripe.md
+│   ├── src/
+│   │   ├── main/ (227 files)
+│   │   └── test/ (44 files)
+│   ├── .dockerignore
+│   ├── Dockerfile
+│   ├── pom.xml
+│   └── test_kafka.sh
+├── docs/                                   Documentation (start at docs/README.md)
+│   ├── adr/
+│   │   ├── 0001-modular-monolith-first.md
+│   │   ├── 0002-managed-services-in-cloud.md
+│   │   ├── 0003-kafka-event-topic-unification.md
+│   │   ├── 0004-spec-driven-development.md
+│   │   ├── 0005-proportionate-hybrid-sdd.md
+│   │   ├── 0006-hybrid-monolith-and-services.md
+│   │   ├── 0007-ai-provider-fallback-chain.md
+│   │   ├── ADR-001-AI-PROVIDER-ABSTRACTION.md
+│   │   ├── AI_PROVIDER_COMPARISON.md
+│   │   └── README.md
+│   ├── agents/
+│   │   ├── GUARDRAILS.md
+│   │   ├── REGISTRY.md
+│   │   ├── SDD-HYBRID-GUIDE.md
+│   │   ├── SDD-WORKFLOW.md
+│   │   └── WORKTREE-ORCHESTRATION.md
+│   ├── architecture/
+│   │   ├── ARCHITECTURE.md
+│   │   ├── architecture.mmd
+│   │   ├── kafka.md
+│   │   └── overview.md
+│   ├── audit/ (protected audit evidence: do not edit) (17 files)
+│   ├── contracts/
+│   │   └── mentorships/ (5 files)
+│   ├── course/
+│   │   ├── BACKLOG.md
+│   │   └── INSTRUCTOR-GUIDE.md
+│   ├── features/
+│   │   ├── cancelacion-reserva-propia-backend.md
+│   │   ├── hu-12-notificaciones-rabbitmq.md
+│   │   ├── hu-17-idempotencia-correlation-id.md
+│   │   └── hu-23-recomendaciones-multimodales.md
+│   ├── guides/
+│   │   └── free-tier-deployment.md
+│   ├── history/
+│   │   ├── AI_PROVIDER_BASELINE.md
+│   │   ├── CONFLICT-RESOLUTION-REPORT.md
+│   │   ├── DEMO-HU-22-HU-15.md
+│   │   ├── HU-15-ISSUES_AND_BLOCKERS.md
+│   │   └── RELEASE-NOTES-OCT-2026.md
+│   ├── MODULES/
+│   │   ├── audit-service.md
+│   │   ├── backend.md
+│   │   └── frontend.md
+│   ├── refinement/
+│   │   ├── 2026-11-hu-refinement.md
+│   │   └── adr-001-review.md
+│   ├── API.md
+│   ├── CI-CD.md
+│   ├── CONTRIBUTING.md
+│   ├── DEPLOYMENT-CHECKLIST.md
+│   ├── INTEGRATIONS.md
+│   ├── PROJECT_CONTEXT.md
+│   ├── README.md
+│   ├── RISK-REGISTER.md
+│   ├── SECURITY-MODEL.md
+│   └── TESTING.md
+├── frontend/                               Customer & provider portal, booking UI, multimodal AI chat
+│   ├── public/
+│   │   ├── env.js
+│   │   └── favicon.svg
+│   ├── scripts/
+│   │   └── generate-env.mjs
+│   ├── src/
+│   │   ├── app/ (29 files)
+│   │   ├── env.d.ts
+│   │   ├── index.html
+│   │   ├── main.ts
+│   │   └── styles.css
+│   └── (12 files)
+├── ops/                                    Prometheus and Grafana observability configuration
+│   ├── grafana/
+│   │   └── provisioning/ (1 file)
+│   └── prometheus/
+│       └── prometheus.yml
+├── scripts/                                Automation, smoke tests, and agent worktree scripts
+│   ├── tests/
+│   │   ├── agent-parity.test.sh
+│   │   ├── agent-worktree-agy.test.sh
+│   │   ├── lib.sh
+│   │   ├── protect-paths.test.sh
+│   │   └── skill-parity.test.sh
+│   └── (8 files)
+├── specs/                                  Spec-Driven Development feature specifications
+│   ├── 022-demand-analytics/
+│   │   └── spec.md
+│   ├── 025-spark-analytics/
+│   │   ├── checklists/ (1 file)
+│   │   └── spec.md
+│   ├── 026-rag-knowledge/
+│   │   ├── checklists/ (1 file)
+│   │   └── spec.md
+│   ├── 027-ai-model-fallback/
+│   │   ├── checklists/ (1 file)
+│   │   └── spec.md
+│   ├── 028-ai-fallback-config/
+│   │   ├── checklists/ (1 file)
+│   │   └── spec.md
+│   ├── 029-incident-triage-agent/
+│   │   └── spec.md
+│   └── README.md
+├── .editorconfig
+├── .env.example
+├── .gitignore
+├── AGENTS.md
+├── CHANGELOG.md
+├── CLAUDE.md
+├── docker-compose.yml
+├── LICENSE
+├── Makefile
+├── PROJECT-STRUCTURE.txt
+├── qodana.yaml
+└── README.md

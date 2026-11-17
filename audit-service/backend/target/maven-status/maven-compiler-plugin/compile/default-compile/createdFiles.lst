@@ -1,0 +1,8 @@
+com/riwi/audit/consumer/KafkaAuditConsumer.class
+com/riwi/audit/AuditServiceApplication.class
+com/riwi/audit/config/CorsConfig.class
+com/riwi/audit/model/BusinessEvent.class
+com/riwi/audit/repository/AuditEventRepository.class
+com/riwi/audit/controller/AuditController.class
+com/riwi/audit/config/AuditMongoInitializer.class
+com/riwi/audit/model/BusinessEvent$BusinessEventBuilder.class

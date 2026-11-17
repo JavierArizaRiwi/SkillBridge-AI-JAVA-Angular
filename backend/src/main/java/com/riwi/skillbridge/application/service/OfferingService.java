@@ -6,6 +6,9 @@ import com.riwi.skillbridge.application.port.out.OfferingRepositoryPort;
 import com.riwi.skillbridge.domain.model.Offering;
 import org.springframework.stereotype.Service;
 
+import com.riwi.skillbridge.domain.model.PageQuery;
+import com.riwi.skillbridge.domain.model.PageResult;
+
 import java.util.List;
 
 @Service
@@ -25,5 +28,10 @@ public class OfferingService implements ListOfferingsUseCase {
             cache.putActiveOfferings(offerings);
             return offerings;
         });
+    }
+
+    @Override
+    public PageResult<Offering> listActive(PageQuery query) {
+        return repository.findAllActive(query);
     }
 }

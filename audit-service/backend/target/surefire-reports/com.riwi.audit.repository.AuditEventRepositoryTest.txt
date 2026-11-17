@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: com.riwi.audit.repository.AuditEventRepositoryTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 10.79 s -- in com.riwi.audit.repository.AuditEventRepositoryTest

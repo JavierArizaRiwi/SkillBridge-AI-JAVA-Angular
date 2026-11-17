@@ -16,27 +16,30 @@ import java.io.IOException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtService jwtService;
     private final DatabaseUserDetailsService userDetailsService;
+    private final AuthCookieService cookieService;
 
-    public JwtAuthenticationFilter(JwtService jwtService, DatabaseUserDetailsService userDetailsService) {
+    public JwtAuthenticationFilter(JwtService jwtService,
+                                   DatabaseUserDetailsService userDetailsService,
+                                   AuthCookieService cookieService) {
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
+        this.cookieService = cookieService;
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-            throws ServletException, IOException {
-        String header = request.getHeader("Authorization");
-        if (header == null || !header.startsWith("Bearer ")) {
+        throws ServletException, IOException {
+        String token = resolveToken(request);
+        if (token == null) {
             filterChain.doFilter(request, response);
             return;
         }
 
         try {
-            String token = header.substring(7);
             String username = jwtService.extractUsername(token);
             if (SecurityContextHolder.getContext().getAuthentication() == null) {
                 UserDetails user = userDetailsService.loadUserByUsername(username);
-                if (jwtService.isValid(token, user)) {
+                if (user.isEnabled() && jwtService.isValid(token, user)) {
                     var auth = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
                     SecurityContextHolder.getContext().setAuthentication(auth);
                 }
@@ -45,5 +48,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             SecurityContextHolder.clearContext();
         }
         filterChain.doFilter(request, response);
+    }
+
+    // Cookie primero; header Bearer como respaldo (Postman)
+    private String resolveToken(HttpServletRequest request) {
+        return cookieService.resolve(request).orElseGet(() -> {
+            String header = request.getHeader("Authorization");
+            return (header != null && header.startsWith("Bearer ")) ? header.substring(7) : null;
+        });
     }
 }
