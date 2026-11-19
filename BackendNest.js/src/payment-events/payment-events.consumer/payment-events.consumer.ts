@@ -15,8 +15,8 @@ import { plainToInstance } from 'class-transformer';
 
 import { PaymentApprovedService } from './payment-approved.service.js';
 import { PaymentApprovedDto } from '../dto/payment-approved.dto.js';
-import { MentorshipModeDto } from '../dto/mentorship-mode.dto.js';
-import { MentorshipMode } from '../payment-events.consumer/payment-events.module.js';
+import { MentorshipModule } from '../payment-events.consumer/payment-events.module.js';
+import { MentorshipMode } from '../interfaces/payment-approvend.interface.js';
 
 @Controller()
 export class PaymentEventsConsumer {

@@ -8,7 +8,7 @@ import { createObserveModule } from '@nestjs/observe';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 
-import { RabbitmqService } from './rabbitmq/rabbitmq/rabbitmq.service.js';
+import { RabbitmqService } from './rabbitmq/rabbitmq.service.js';
 import { RabbitmqModule } from './rabbitmq/rabbitmq.module.js';
 
 import { MentorshipService } from './mentorship/mentorship/mentorship.service.js';
