@@ -21,6 +21,7 @@ Este repositorio sirve como punto de partida para trabajar:
 - Migraciones con Flyway.
 - Cache-Aside con Redis.
 - Eventos asíncronos con RabbitMQ.
+- Eventos de negocio persistentes (Auditoría/Analytics) con Apache Kafka (ver [Documentación Kafka](docs/kafka.md)).
 - Retry + Dead Letter Queue.
 - Integración de IA desde Java sin exponer API keys en Angular.
 - Angular standalone.
@@ -620,23 +621,117 @@ El starter publica el evento después de persistir la reserva. En un sistema cr�
 
 ---
 
-# 10. IA
+# 10. IA y Proveedores
 
-Crea una API key del proveedor y colócala únicamente en:
+## 10.1 Arquitectura de Proveedores de IA
+
+SkillBridge soporta múltiples proveedores de IA sin cambio de código. El proveedor se selecciona mediante configuración en tiempo de ejecución.
+
+### Proveedores Soportados
+
+#### Gemini (Google)
+- **Modelo**: `gemini-3.8-flash`
+- **Latencia**: ~1350ms
+- **Costo**: ~$0.000035 por request
+- **Característica**: Ideal para desarrollo (free tier disponible)
+
+#### OpenAI
+- **Modelo**: `gpt-4-turbo` (recomendado) o `gpt-3.5-turbo` (económico)
+- **Latencia**: ~1050ms (22% más rápido que Gemini)
+- **Costo**: ~$0.0039 (GPT-4) o ~$0.000195 (GPT-3.5) por request
+- **Característica**: Mejor calidad, más consistente
+
+**Para más detalles**, ve a `docs/AI_PROVIDER_COMPARISON.md`.
+
+### Cambiar Proveedor
+
+No requiere recompilación. Solo configura la variable de entorno:
+
+```bash
+# Desarrollo (Gemini - costo $0)
+export APP_AI_PROVIDER=gemini
+export GEMINI_API_KEY=...
+
+# Producción (OpenAI - mejor calidad)
+export APP_AI_PROVIDER=openai
+export OPENAI_API_KEY=...
+```
+
+**Nota**: Solo una API key es necesaria según el proveedor activo.
+
+### Arquitectura Interna
+
+La abstracción se implementa con el patrón Adapter:
+
+```
+AiRecommendationPort (interface)
+    ↑                    ↑
+    │                    │
+GeminiAiAdapter    OpenAiAdapter
+    ↓                    ↓
+Spring AI ChatClient (Unificada)
+```
+
+Spring elige automáticamente la implementación correcta basada en `app.ai.provider`.
+
+**Para detalles de arquitectura**, consulta `docs/ADR-001-AI-PROVIDER-ABSTRACTION.md`.
+
+## 10.2 Configuración
+
+### En Docker
+
+Edita `.env`:
 
 ```env
+# Proveedor a utilizar
+APP_AI_PROVIDER=gemini
+
+# Gemini (si APP_AI_PROVIDER=gemini)
+GEMINI_API_KEY=...
+GEMINI_MODEL=gemini-3.8-flash
+
+# OpenAI (si APP_AI_PROVIDER=openai)
+OPENAI_API_KEY=...
+OPENAI_MODEL=gpt-4-turbo-preview
+
+# Común a ambos
+AI_PROVIDER_TIMEOUT_SECONDS=10
+```
+
+### En Render
+
+Agrega las variables según el proveedor:
+
+```env
+APP_AI_PROVIDER=openai
+OPENAI_API_KEY=sk-...
+```
+
+O para Gemini:
+
+```env
+APP_AI_PROVIDER=gemini
 GEMINI_API_KEY=...
 ```
 
-Nunca hagas esto en Angular:
+## 10.3 Seguridad
 
-```typescript
-const GEMINI_API_KEY = 'secret'; // NO
+Crea una API key del proveedor y colócala únicamente en variables de entorno:
+
+```env
+GEMINI_API_KEY=...
+OPENAI_API_KEY=...
 ```
 
-El navegador es un entorno no confiable: cualquier secreto incluido en el bundle frontend puede ser inspeccionado.
+**Nunca** hagas esto en Angular:
 
-## Endpoint
+```typescript
+const API_KEY = 'secret'; // ❌ NO
+```
+
+El navegador es un entorno no confiable: cualquier secreto incluido en el bundle frontend puede ser inspeccionado con DevTools.
+
+## 10.4 Endpoint
 
 ```text
 POST /api/ai/recommendations
@@ -661,6 +756,31 @@ La IA solo recibe:
 No recibe contraseña, JWT ni datos internos.
 
 Para un entorno educativo evita introducir información confidencial o datos personales reales en prompts de servicios gratuitos.
+
+## 10.5 Tests
+
+Ambos adaptadores tienen cobertura completa:
+
+```bash
+cd backend
+mvn test -Dtest=GeminiAiAdapterTest,OpenAiAiAdapterTest
+```
+
+Cada prueba verifica:
+
+- Errores de configuración (API key faltante)
+- Errores de red/timeout
+- Respuestas vacías
+- Manejo de excepciones
+
+## 10.6 Recomendación
+
+| Escenario | Proveedor | Razón |
+|---|---|---|
+| Desarrollo local | Gemini | Free tier, fácil setup |
+| Demo/Prototipo | Gemini | Costo ≈ $0 para 1500 req/día |
+| Producción crítica | OpenAI 3.5-turbo | Balance calidad/costo ($702/año) |
+| Máxima calidad | OpenAI 4-turbo | Mejor reasoning (+8% calidad) |
 
 ---
 
@@ -1732,3 +1852,7 @@ La evaluación no debería limitarse a "funciona". La célula debe poder **expli
 Este starter puede ser adaptado libremente como material de formación. Las credenciales de proveedores externos y los límites de sus planes son responsabilidad de cada equipo.
 # SkillBridge-AI-JAVA-Angular
 # SkillBridge-AI-JAVA-Angular
+
+### Recomendaciones multimodales
+
+El asistente acepta texto, archivos de voz e imágenes en `/api/ai/recommendations`. Todo el procesamiento Gemini ocurre en Spring Boot; el frontend no contiene API keys. Configura `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_MEDIA_MAX_AUDIO_BYTES` y `AI_MEDIA_MAX_IMAGE_BYTES` en el entorno del backend.
