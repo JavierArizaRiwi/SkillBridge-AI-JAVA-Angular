@@ -1856,3 +1856,11 @@ Este starter puede ser adaptado libremente como material de formación. Las cred
 ### Recomendaciones multimodales
 
 El asistente acepta texto, archivos de voz e imágenes en `/api/ai/recommendations`. Todo el procesamiento Gemini ocurre en Spring Boot; el frontend no contiene API keys. Configura `GEMINI_API_KEY`, `GEMINI_MODEL`, `AI_MEDIA_MAX_AUDIO_BYTES` y `AI_MEDIA_MAX_IMAGE_BYTES` en el entorno del backend.
+
+---
+
+## 👨💻 Author
+
+- GitHub: **[Danilo-Doria](https://github.com/Danilo-Doria)**
+- LinkedIn: **[Danilo Doria Diaz](https://www.linkedin.com/in/danilo-doria-diaz)**
+- Mail: **danilodoria519@gmail.com**
