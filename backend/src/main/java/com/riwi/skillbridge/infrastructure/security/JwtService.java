@@ -29,23 +29,29 @@ public class JwtService implements TokenPort {
     public String generate(String email, String role) {
         Instant now = Instant.now();
         return Jwts.builder()
-                .subject(email)
-                .claim("role", role)
-                .issuedAt(Date.from(now))
-                .expiration(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES)))
-                .signWith(key)
-                .compact();
+            .subject(email)
+            .claim("role", role)
+            .issuedAt(Date.from(now))
+            .expiration(Date.from(now.plus(expirationMinutes, ChronoUnit.MINUTES)))
+            .signWith(key)
+            .compact();
     }
 
-    public String extractUsername(String token) { return claims(token).getSubject(); }
+    public String extractUsername(String token) {
+        return claims(token).getSubject();
+    }
 
     public boolean isValid(String token, UserDetails userDetails) {
         Claims claims = claims(token);
         return claims.getSubject().equalsIgnoreCase(userDetails.getUsername())
-                && claims.getExpiration().after(new Date());
+            && claims.getExpiration().after(new Date());
     }
 
     private Claims claims(String token) {
         return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+    }
+
+    public String extractRole(String token) {
+        return claims(token).get("role", String.class);
     }
 }

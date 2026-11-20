@@ -22,11 +22,39 @@ public class OfferingPersistenceAdapter implements OfferingRepositoryPort {
     }
 
     @Override
+    public List<Offering> findAll() {
+        return repository.findAllByOrderByTitleAsc().stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<Offering> findByProviderId(UUID providerId) {
+        return repository.findByProviderIdOrderByTitleAsc(providerId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public Optional<Offering> findById(UUID id) {
         return repository.findById(id).map(this::toDomain);
     }
 
+    @Override
+    public Offering save(Offering offering) {
+        OfferingEntity saved = repository.findById(offering.id())
+            .map(existing -> {
+                existing.applyChanges(offering.title(), offering.description(),
+                    offering.category(), offering.price(), offering.active());
+                return repository.save(existing);
+            })
+            .orElseGet(() -> repository.save(toEntity(offering)));
+        return toDomain(saved);
+    }
+
     private Offering toDomain(OfferingEntity e) {
-        return new Offering(e.getId(), e.getTitle(), e.getDescription(), e.getCategory(), e.getPrice(), e.isActive());
+        return new Offering(e.getId(), e.getProviderId(), e.getTitle(), e.getDescription(),
+            e.getCategory(), e.getPrice(), e.isActive());
+    }
+
+    private OfferingEntity toEntity(Offering o) {
+        return new OfferingEntity(o.id(), o.providerId(), o.title(), o.description(),
+            o.category(), o.price(), o.active());
     }
 }

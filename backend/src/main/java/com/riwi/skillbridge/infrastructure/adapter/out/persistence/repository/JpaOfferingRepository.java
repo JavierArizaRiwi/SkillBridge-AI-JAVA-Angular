@@ -7,4 +7,6 @@ import java.util.UUID;
 
 public interface JpaOfferingRepository extends JpaRepository<OfferingEntity, UUID> {
     List<OfferingEntity> findByActiveTrueOrderByTitleAsc();
+    List<OfferingEntity> findAllByOrderByTitleAsc();
+    List<OfferingEntity> findByProviderIdOrderByTitleAsc(UUID providerId);
 }
